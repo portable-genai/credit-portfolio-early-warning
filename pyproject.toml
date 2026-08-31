@@ -46,6 +46,12 @@ dev = [
 gcp = [
   "google-cloud-logging>=3.0",
   "google-auth>=2.0",
+  # The obligor-metrics and servicing feed (adapters/gcp/portfolio_feed.py) lazy-imports
+  # google.cloud.bigquery. It was imported and declared NOWHERE, so the gcp profile bound the
+  # adapter and every profile constructed cleanly, then the first query raised ImportError on a
+  # deployed service. Twenty-four sibling repos declare it; this one did not, and nothing could
+  # see that while the repo sat outside the hosted-CI policy.
+  "google-cloud-bigquery>=3.25",
   # The OpenTelemetry tracer implementation, from the commons rather than assembled here.
   # Only a deployed profile exports spans: the tracer PORT and the log formatter are in the
   # commons CORE, so the offline gate binds and logs with none of this installed.
