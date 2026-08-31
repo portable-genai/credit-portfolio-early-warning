@@ -1,0 +1,153 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "credit-portfolio-early-warning"
+version = "0.0.1"
+description = "Post-origination covenant monitoring and cited early-warning watchlist proposals."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Ashish Awasthi" }]
+
+# The catalog commons, pinned by tag (no build-time coupling: a deliberate per-repo bump). Each
+# package carries its own release line, so each has its own cookiecutter variable. The managed
+# cloud SDKs live in the [gcp] extra so the local/onprem gate installs none of them.
+#
+# `review-kit` is not optional: rule R8 says a producer that sets `requires_human_review`
+# MUST route the item to the Hrz7 Human-Review console rather than terminate the escalation in a
+# per-repo boolean, and the ReviewRouterPort adapters are bound in EVERY profile.
+dependencies = [
+  "pii-kit @ git+https://github.com/portable-genai/pii-kit@v0.0.1",
+  "hex-service-kit[fastapi] @ git+https://github.com/portable-genai/hex-service-kit@v0.0.6",
+  "agent-eval-kit @ git+https://github.com/portable-genai/agent-eval-kit@v0.0.1",
+  "review-kit @ git+https://github.com/portable-genai/review-kit@v0.0.1",
+  "pyyaml>=6.0",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+# The SDK-free dev/test/CI toolchain. Ruff is pinned EXACTLY so formatting never drifts.
+dev = [
+  "ruff==0.16.4",
+  # Floored at the version whose CONFIGURATION this file uses. `>=1.10` was not a neutral
+  # floor: `follow_untyped_imports` and `untyped_calls_exclude` arrived in 1.14, so a
+  # resolution below it would not understand the file it is configured by.
+  "mypy>=2.3.1",
+  "pytest>=8.2",
+  "types-PyYAML>=6.0",
+  # Validates the rendered Agent Plugins manifest against the specification schema the commons
+  # vendors. A HARD dev dependency rather than an optional one, so that guard can never skip
+  # into green: a manifest nobody validated is the same as no manifest at all.
+  "jsonschema>=4.26",
+]
+# Managed cloud SDKs (lazy-imported by the gcp adapters). NOT installed by the local gate.
+gcp = [
+  "google-cloud-logging>=3.0",
+  "google-auth>=2.0",
+  # The OpenTelemetry tracer implementation, from the commons rather than assembled here.
+  # Only a deployed profile exports spans: the tracer PORT and the log formatter are in the
+  # commons CORE, so the offline gate binds and logs with none of this installed.
+  "hex-service-kit[otel] @ git+https://github.com/portable-genai/hex-service-kit@v0.0.6",
+]
+
+[project.scripts]
+credit_portfolio_ews = "credit_portfolio_ews.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/portable-genai/credit-portfolio-early-warning"
+Source = "https://github.com/portable-genai/credit-portfolio-early-warning"
+
+# The commons are pinned by git+https (direct references); allow them for this project.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/credit_portfolio_ews"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+# The test-support package sorts into its own section, AFTER the first-party package. Without
+# this, `import credit_portfolio_ews` and `import tests` share a section and their
+# order depends on how the package name happens to sort against the word "tests": a repo
+# rendered with a later-sorting name would need a different (and only different) import order.
+known-local-folder = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
+# Two settings that exist so mypy's verdict does not depend on WHICH environment it runs in --
+# the property the rest of this section already exists to hold.
+#
+# `untyped_calls_exclude` drops exactly one complaint -- "this callee has no annotations" --
+# for the `google` namespace. `disallow_untyped_calls` exists to stop typed code calling OUR
+# untyped code; aimed at a third-party release it is a demand no work here can satisfy, and
+# proto-plus generates every message `__init__` without annotations. It silences nothing else:
+# a wrong attribute and a wrong argument type on the same call are still reported, which was
+# proved by planting both.
+untyped_calls_exclude = ["google"]
+
+# The managed SDKs are LAZY imports inside methods and are not installed by the SDK-free dev
+# toolchain, so mypy's verdict about them used to depend on what happened to be in the venv:
+# absent it reported `import-not-found`, present-but-unstubbed it reported `import-untyped`, and
+# a `# type: ignore[import-not-found]` written for the first became an `unused-ignore` ERROR
+# under the second. `mypy src` was therefore red for any developer who had google-auth installed
+# for some other reason, and it went red the moment this repo's own IAP negative matrix needed
+# the verifier present. One declaration here, matching the rest of the catalog, so the type
+# check says the same thing either way.
+[[tool.mypy.overrides]]
+module = ["google.*"]
+ignore_missing_imports = true
+
+# `follow_untyped_imports` ANALYSES a dependency that ships no `py.typed` instead of resolving
+# it to nothing, so it is MORE checking rather than less. Measured, not assumed: a bogus method
+# on a `google.cloud.storage` client was reported by nothing before this and is an
+# `attr-defined` error after it, and turning it on immediately surfaced a real type confusion
+# in the Model Armor adapter that had been invisible in four trees.
+#
+# SCOPED to `google.*` on purpose. Set globally it also follows the 3.14 standard library,
+# where mypy 2.3.1 cannot parse `annotationlib.py` and reports `Invalid syntax` in a CPython
+# source file having checked nothing -- found by running the fleet rather than one sample.
+[[tool.mypy.overrides]]
+module = ["google.*"]
+follow_untyped_imports = true
+
+# Following is the right default and the WRONG answer for generated protobuf modules. Their
+# source builds every message class at import time through a descriptor builder, so mypy
+# reading it reports `Module has no attribute "Timestamp"` for a class that plainly exists --
+# a false finding, and one a blocking gate cannot carry. The `types-protobuf` stubs state the
+# truth instead, so mypy is pointed back at them here rather than at the builder.
+[[tool.mypy.overrides]]
+module = ["google.protobuf.*", "google._upb.*"]
+follow_untyped_imports = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# The demo scripts are importable from the suite, so `tests/unit/test_demo_surface.py` can drive
+# the real demo instead of asserting that some files exist. Declared here rather than with a
+# `sys.path` insert in a conftest: a path hack is invisible to the reader of the failing test.
+#
+# `scripts` is deliberately NOT added to `[tool.ruff] src`. If it were, a sibling import such as
+# `import demo` would share an isort section with `import <package>`, and the correct import
+# order would depend on how the rendered package name sorts against the word "demo". Same trap
+# as `known-local-folder` below solves for `tests`.
+#
+# `eval` is on the same path and for the same reason: the not-falsely-green harness drives the
+# SHIPPED metric in `eval/run_eval.py` over real audit records. A harness that re-implemented the
+# metric locally would prove a property of its own copy, which is how the shipped oracle kept a
+# field-shaped blind spot while a test called it proven.
+pythonpath = ["scripts", "eval"]
+markers = [
+  "integration: tests that need live cloud services (deselected by default)",
+]

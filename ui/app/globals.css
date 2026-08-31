@@ -1,0 +1,301 @@
+:root {
+  --ink-50: #f5f7fa;
+  --ink-100: #e9eef5;
+  --ink-200: #cdd7e4;
+  --ink-500: #546b8b;
+  --ink-900: #1b2536;
+  --accent: #2945d6;
+  --ok: #0f766e;
+  --bad: #b91c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 32px 18px;
+  background: var(--ink-50);
+  color: var(--ink-900);
+  font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+p.sub {
+  color: var(--ink-500);
+  margin: 0 0 20px;
+}
+
+fieldset {
+  border: 1px solid var(--ink-200);
+  border-radius: 10px;
+  background: #fff;
+  padding: 14px 16px;
+  margin: 0 0 16px;
+}
+
+legend {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-500);
+  padding: 0 6px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ink-200);
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+button {
+  font: inherit;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+pre.result {
+  background: #fff;
+  border: 1px solid var(--ink-200);
+  border-left: 4px solid var(--ok);
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+pre.result.error {
+  border-left-color: var(--bad);
+}
+
+footer {
+  color: var(--ink-500);
+  font-size: 12px;
+  margin-top: 24px;
+}
+
+/* The provenance banner: where this is running and which model answers. Full-bleed at the
+   very top, above every page's own chrome, so it reads as a property of the deployment
+   rather than as part of any one screen. The negative margins undo `body`'s padding, which
+   is what makes it a strip instead of a floating pill. */
+.provenance-banner {
+  margin: -32px -18px 20px;
+  padding: 5px 18px;
+  border-bottom: 1px solid var(--ink-200);
+  background: var(--ink-100);
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
+/* --------------------------------------------------------------------------------------- */
+/* The watchlist review. Six blocks, in the order a credit officer reads a proposal: what is
+   proposed and what was NOT done, the score, the floors, the covenants, the signals, the memo.
+   Nothing here computes anything: the browser renders what the service returned. */
+/* --------------------------------------------------------------------------------------- */
+
+.review {
+  margin-top: 20px;
+}
+
+.block {
+  background: #fff;
+  border: 1px solid var(--ink-200);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.block h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-500);
+  margin: 0 0 10px;
+}
+
+.block h3 {
+  font-size: 15px;
+  margin: 10px 0 4px;
+}
+
+/* The ladder: the distance between the grade of record and the proposal, shown rather than
+   described. A reader should not have to hold two words in their head and infer the gap. */
+ol.ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+li.rung {
+  border: 1px solid var(--ink-200);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+
+li.rung.marked {
+  border-color: var(--accent);
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.rung-mark {
+  color: var(--accent);
+  font-weight: 400;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* The sentence that must never be a footnote: no grade moved. */
+p.notapplied {
+  border-left: 4px solid var(--ok);
+  background: var(--ink-100);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+p.movement,
+p.composite,
+p.reasons,
+p.floor-note,
+p.discarded {
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+p.discarded {
+  color: var(--bad);
+}
+
+p.muted,
+td.muted {
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
+.block table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.block th,
+.block td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ink-200);
+  vertical-align: top;
+}
+
+.block th {
+  color: var(--ink-500);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* A cap that BOUND is the difference between a score and a black box, so it is visible. */
+tr.capped td {
+  background: #fff8e6;
+}
+
+/* A covenant nobody tested must not look like one that passed. */
+tr.breach td {
+  background: #fdeceb;
+}
+
+tr.unevidenced td {
+  background: #eef2f7;
+  font-style: italic;
+}
+
+span.rule,
+td.locator {
+  color: var(--ink-500);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+p.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+span.chip {
+  background: #fdeceb;
+  border: 1px solid var(--bad);
+  color: var(--bad);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--ink-200);
+  padding: 6px 12px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* The rules that were CONSIDERED and did not fire. A second-line reviewer opens these first,
+   which is why they are kept rather than filtered away. */
+ul.quiet {
+  font-size: 12px;
+  color: var(--ink-500);
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.outside {
+  margin-top: 12px;
+  border-top: 1px dashed var(--ink-200);
+  padding-top: 10px;
+}

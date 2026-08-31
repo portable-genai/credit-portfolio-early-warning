@@ -1,0 +1,227 @@
+# Credit Portfolio Early Warning (Doc7) runtime configuration.
+#
+# Loaded by `src/credit_portfolio_ews/config.py`. Point at a different file with
+# CREDITEWS_SETTINGS; a path that is named but missing is a boot error, not
+# a silent fall-back to built-in defaults.
+#
+# `${VAR}` and `${VAR:-default}` resolve in THREE states: unset takes the default written here,
+# SET-AND-EMPTY resolves to empty (an operator who emptied a value expressed an intent, and it
+# names nothing), and a set value wins. This file holds env var NAMES and non-secret defaults
+# only: no secret value is ever committed here.
+
+# Data residency. Selected once and shared by the runtime and Terraform.
+region: ${GCP_REGION:-asia-southeast1}
+
+# Tenant partition asserted on outbound reviews when the verified principal carries none.
+# (Built as one template expression: a literal "${" immediately before a template opener is
+# ambiguous to render, so the whole reference is produced by the expression instead.)
+tenant: ${CREDITEWS_TENANT:-}
+
+# GCP project for the managed tracer's Cloud Trace export and for the trace resource name
+# Cloud Logging links each log line on. Empty is fine on Cloud Run, where the exporter reads
+# the project from the metadata server.
+project_id: ${GOOGLE_CLOUD_PROJECT:-}
+
+# Local profile stores. ":memory:" is the ephemeral, deterministic default the gate uses; a
+# deployment points this at a durable path.
+audit_path: ${CREDITEWS_AUDIT_PATH:-:memory:}
+
+# The external head anchor for the WORM audit chain (practices check C9). The hash chain cannot
+# detect a TRUNCATED TAIL by itself: dropping the newest rows leaves a shorter chain that
+# verifies perfectly. Point this at a file on a DIFFERENT volume, under different credentials,
+# from audit_path, and every append also writes the chain head there. Empty (the default) means
+# no anchor, which is correct for the ephemeral ":memory:" store and wrong for a durable one.
+audit_anchor_path: ${CREDITEWS_AUDIT_ANCHOR:-}
+
+# The audience the managed (gcp) IAP identity adapter verifies the assertion AGAINST: the
+# IAP-protected resource, "/projects/<NUM>/global/backendServices/<ID>" behind an HTTPS load
+# balancer. It is per-deployment, so it is configuration and never a literal in the adapter.
+# Three states, and UNSET and SET-AND-EMPTY land in the same place on purpose: both resolve to
+# empty, and an empty audience REFUSES every caller rather than verifying without one.
+# google-auth documents audience=None as "the audience is not verified", which accepts ANY
+# Google-signed OIDC token, from any project or any app, and reads its email as a principal.
+iap_audience: ${CREDITEWS_IAP_AUDIENCE:-}
+
+# Rule R8: where an escalated result is routed for human review. The managed profile REFUSES to
+# swallow an escalation when this is empty, so a producer cannot ship with R8 unwired.
+# The outbound S2S credentials are HUMAN_REVIEW_S2S_TOKEN / HUMAN_REVIEW_S2S_SIGNING_KEY (see .env.secrets.example),
+# deliberately distinct from this service's own inbound CREDITEWS_S2S_TOKEN.
+review_url: ${HUMAN_REVIEW_URL:-}
+
+# The origination service (credit-memo-drafting, catalog id Doc2) this repo READS covenant terms
+# from. Doc2 extracts covenants at origination; this repo tests them afterwards and never
+# re-extracts. Three-state: unset or emptied leaves the managed adapter with no endpoint, and it
+# REFUSES rather than returning an empty covenant set, because an obligor with no covenants is an
+# obligor nobody is monitoring.
+credit_memo_url: ${CREDITEWS_CREDIT_MEMO_URL:-}
+
+# The BigQuery dataset ("project.dataset") holding the obligor-metrics and servicing views the
+# managed portfolio feed queries. It must sit in the residency region above.
+metrics_dataset: ${CREDITEWS_METRICS_DATASET:-}
+
+# The Hrz3 knowledge base the managed adverse-media adapter retrieves from.
+knowledge_base_url: ${CREDITEWS_KNOWLEDGE_BASE_URL:-}
+
+# The grading system of record, READ ONLY. The port declares no write method in any profile, and
+# the serving identity's role in infra/terraform/iam.tf grants viewer on that collection only.
+grade_registry_url: ${CREDITEWS_GRADE_REGISTRY_URL:-}
+
+# ---------------------------------------------------------------------------
+# Bank-owned early-warning policy
+# ---------------------------------------------------------------------------
+# Every number a credit committee would argue about. The engine is CODE; these are the client's
+# to set, and the values below are REFERENCE DEFAULTS rather than a calibrated scorecard. Two of
+# the clocks are deliberately the regulatory presumptions themselves (thirty and ninety days past
+# due) and the two materiality legs mirror the absolute-plus-relative shape supervisors expect.
+#
+# The block is PRESENT rather than commented, so an operator can see and diff what is running.
+# `tests/unit/test_policy.py` asserts it parses into exactly the shipped code defaults, so the
+# file and the dataclass cannot drift. validate_policy REFUSES at load, not at first request: a
+# band ladder that is not strictly monotonic, an external or process cap that reaches the first
+# adverse band, a SICR clock above the default clock, an upgrade completeness floor below the
+# general one or an empty required-metrics list all fail the deploy.
+policy:
+  headroom_band: 0.05
+  max_reporting_lag_days: 120
+  certificate_grace_days: 45
+  waiver_expiry_notice_days: 90
+  # ARREARS materiality gates the past-due clock. Both legs must pass. Minor currency units.
+  arrears_materiality_absolute_minor: 50000
+  arrears_materiality_relative_pct: 0.01
+  sicr_days_past_due: 30
+  default_days_past_due: 90
+  severe_days_past_due: 180
+  rating_review_max_age_days: 365
+  # The anti-double-counting rule. The model-influenced family (external) and the family that
+  # measures our own file (process) must stay BELOW the first adverse band floor of 35.
+  family_caps:
+    financial: 40
+    behavioural: 30
+    external: 20
+    process: 20
+  band_floors:
+    - {min_score: 0, grade: pass}
+    - {min_score: 35, grade: special_mention}
+    - {min_score: 70, grade: substandard}
+    - {min_score: 90, grade: doubtful}
+  # A floor LIFTS the proposal by rank. No external or process rule ever sets one.
+  floor_grades:
+    floor-covenant-breach: special_mention
+    floor-covenant-breach-repeat: substandard
+    floor-arrears-sicr: special_mention
+    floor-arrears-default: substandard
+    floor-arrears-severe: doubtful
+    floor-restructured: special_mention
+  # Breach, waived and at_risk are facts about the obligor's credit, so they land in FINANCIAL.
+  # Stale and not_evidenced are facts about OUR file, so they land in PROCESS: a data gap must
+  # not dilute a covenant breach under the financial cap, and a thin file must not classify.
+  covenant_weights:
+    breach: {weight: 30, severity: high, family: financial}
+    waived: {weight: 12, severity: medium, family: financial}
+    at_risk: {weight: 10, severity: medium, family: financial}
+    not_evidenced: {weight: 12, severity: medium, family: process}
+    stale: {weight: 10, severity: medium, family: process}
+    not_due: {weight: 0, severity: low, family: process}
+    compliant: {weight: 0, severity: low, family: financial}
+  # One tier fires, by the clock above it. `severe` is the bank's own escalation past the
+  # ninety-day presumption and is priced the same as `default` here deliberately: the escalation
+  # it carries is the doubtful FLOOR, not a second helping of score.
+  arrears_weights:
+    sicr: {weight: 15, severity: high}
+    default: {weight: 25, severity: critical}
+    severe: {weight: 25, severity: critical}
+  # An ABSENT review is a worse finding than a late one, expressed in severity, not in weight.
+  review_clock_weights:
+    overdue: {weight: 12, severity: medium}
+    absent: {weight: 12, severity: high}
+  coverage_weight: 10
+  min_data_completeness: 0.60
+  # Downgrade fast, upgrade slow: an upgrade needs consecutive clean periods, no fired
+  # high-severity signal, no breach, and POSITIVE evidence above its own higher floor.
+  upgrade_min_clean_periods: 2
+  max_upgrade_notches: 1
+  upgrade_min_data_completeness: 0.90
+  required_metrics:
+    - net_debt_to_ebitda
+    - dscr
+    - current_ratio
+    - ebitda
+    - revolver_utilisation_pct
+    - collections_concentration_pct
+  gate_severity: high
+  # EXPOSURE materiality sets the APPROVAL PATH and never the classification. Minor units.
+  dual_control_exposure_minor: 2500000000
+  max_news_lookback_days: 365
+  signal_rules:
+    - {rule_id: fin-leverage-trend, family: financial, metric: net_debt_to_ebitda, comparison: max, threshold: 4.00, consecutive_periods: 2, weight: 20, severity: high}
+    - {rule_id: fin-dscr-thin, family: financial, metric: dscr, comparison: min, threshold: 1.20, weight: 18, severity: medium}
+    - {rule_id: fin-ebitda-decline, family: financial, metric: ebitda, comparison: delta_min, threshold: -0.30, weight: 15, severity: medium}
+    - {rule_id: fin-liquidity-thin, family: financial, metric: current_ratio, comparison: min, threshold: 1.00, weight: 12, severity: medium}
+    - {rule_id: beh-utilisation-jump, family: behavioural, metric: revolver_utilisation_pct, comparison: delta_max, threshold: 25.0, weight: 15, severity: medium}
+    - {rule_id: beh-utilisation-sustained, family: behavioural, metric: revolver_utilisation_pct, comparison: max, threshold: 95.0, consecutive_periods: 2, weight: 12, severity: medium}
+    - {rule_id: beh-excess-days, family: behavioural, metric: excess_over_limit_days, comparison: max, threshold: 5.0, weight: 12, severity: medium}
+    - {rule_id: beh-returned-debits, family: behavioural, metric: returned_debits, comparison: max, threshold: 2.0, weight: 10, severity: medium}
+    - {rule_id: beh-collections-drop, family: behavioural, metric: collections_concentration_pct, comparison: delta_min, threshold: -20.0, weight: 10, severity: medium}
+    - {rule_id: ext-insolvency, family: external, metric: insolvency, comparison: present, weight: 20, severity: high}
+    - {rule_id: ext-litigation, family: external, metric: litigation, comparison: present, weight: 12, severity: medium}
+    - {rule_id: ext-rating-downgrade, family: external, metric: rating_downgrade, comparison: present, weight: 12, severity: medium}
+    - {rule_id: ext-regulatory-action, family: external, metric: regulatory_action, comparison: present, weight: 12, severity: medium}
+    - {rule_id: ext-supplier-distress, family: external, metric: supplier_distress, comparison: present, weight: 8, severity: low}
+
+# The per-port adapter map: the ONLY place a binding lives, so switching the whole stack is a
+# configuration change rather than a code edit. Every port must bind every profile; the loader
+# refuses a partial block and `tests/test_settings_file.py` fails the build if this drifts from
+# `config.DEFAULT_BINDINGS`.
+adapters:
+  audit:
+    local: credit_portfolio_ews.adapters.local.audit:LocalAuditAdapter
+    gcp: credit_portfolio_ews.adapters.gcp.audit:CloudAuditAdapter
+    onprem: credit_portfolio_ews.adapters.onprem.audit:OnPremAuditAdapter
+  identity:
+    local: credit_portfolio_ews.adapters.local.identity:LocalIdentityAdapter
+    gcp: credit_portfolio_ews.adapters.gcp.identity:IapIdentityAdapter
+    onprem: credit_portfolio_ews.adapters.onprem.identity:OnPremIdentityAdapter
+  review_router:
+    local: credit_portfolio_ews.adapters.local.review_router:LocalReviewRouter
+    gcp: credit_portfolio_ews.adapters.gcp.review_router:CloudReviewRouter
+    onprem: credit_portfolio_ews.adapters.onprem.review_router:OnPremReviewRouter
+
+
+  # Tracing. Which BACKEND a deployed profile exports to is not a binding: the gcp
+  # adapter reads OTEL_EXPORTER_OTLP_ENDPOINT and sends OTLP to the Hrz5 collector when it
+  # is set, straight to Cloud Trace when it is not. Tracing is not essential to correctness,
+  # so onprem is ABSENT rather than fatal, unlike every other onprem placeholder here.
+  tracer:
+    local: credit_portfolio_ews.adapters.local.tracer:LocalNoopTracerAdapter
+    gcp: credit_portfolio_ews.adapters.gcp.tracer:CloudTracerAdapter
+    onprem: credit_portfolio_ews.adapters.onprem.tracer:OnPremTracerAdapter
+
+  # The promotion authority (Hrz4). The local adapter scores offline but REFUSES to promote:
+  # a promotion certified by a laptop with no quality service is certified by nothing.
+  evaluation:
+    local: credit_portfolio_ews.adapters.local.evaluation:LocalOfflineEvalAdapter
+    gcp: credit_portfolio_ews.adapters.gcp.evaluation:ManagedEvalGateAdapter
+    onprem: credit_portfolio_ews.adapters.onprem.evaluation:OnPremEvalAdapter
+  covenant_terms:
+    local: credit_portfolio_ews.adapters.local.covenant_terms:LocalCovenantTerms
+    gcp: credit_portfolio_ews.adapters.gcp.covenant_terms:CloudCovenantTerms
+    onprem: credit_portfolio_ews.adapters.onprem.covenant_terms:OnPremCovenantTerms
+  portfolio_feed:
+    local: credit_portfolio_ews.adapters.local.portfolio_feed:LocalPortfolioFeed
+    gcp: credit_portfolio_ews.adapters.gcp.portfolio_feed:CloudPortfolioFeed
+    onprem: credit_portfolio_ews.adapters.onprem.portfolio_feed:OnPremPortfolioFeed
+  adverse_media:
+    local: credit_portfolio_ews.adapters.local.adverse_media:LocalAdverseMedia
+    gcp: credit_portfolio_ews.adapters.gcp.adverse_media:Hrz3AdverseMedia
+    onprem: credit_portfolio_ews.adapters.onprem.adverse_media:OnPremAdverseMedia
+  grade_registry:
+    local: credit_portfolio_ews.adapters.local.grade_registry:LocalGradeRegistry
+    gcp: credit_portfolio_ews.adapters.gcp.grade_registry:CloudGradeRegistry
+    onprem: credit_portfolio_ews.adapters.onprem.grade_registry:OnPremGradeRegistry
+
+  # The narration seam. It DRAFTS the review memo and CATEGORISES a media item the feed has
+  # already confirmed. It never produces a grade, a movement, a floor, a score or a threshold.
+  generation:
+    local: credit_portfolio_ews.adapters.local.generation:LocalMemoNarrator
+    gcp: credit_portfolio_ews.adapters.gcp.generation:VertexMemoNarrator
+    onprem: credit_portfolio_ews.adapters.onprem.generation:OnPremMemoNarrator

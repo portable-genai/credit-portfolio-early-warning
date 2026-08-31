@@ -1,0 +1,9 @@
+{
+  "//": "render.tf.json: the ONLY Terraform file cookiecutter renders. Every sibling *.tf and *.tftest.hcl file is copied VERBATIM (cookiecutter.json _copy_without_render), because Terraform interpolation and Jinja fight over braces; this file carries the render-time constants they read instead. It is JSON rather than HCL so it can never contain an interpolation, and every value here has a shape the pre-render hook validates (letters, digits, hyphens or underscores), so it can never break the JSON either. See naming.tf for how each local is used, and note that render_package_name is the SAME cookiecutter variable the managed audit adapter's logger name is rendered from, which is what keeps the WORM sink filter and the application agreeing by construction.",
+  "locals": {
+    "render_region": "asia-southeast1",
+    "render_package_name": "credit_portfolio_ews",
+    "render_env_prefix": "CREDITEWS",
+    "render_catalog_id": "Doc7"
+  }
+}
