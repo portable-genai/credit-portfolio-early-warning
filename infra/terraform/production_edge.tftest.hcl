@@ -47,6 +47,23 @@ run "residency_defaults_are_in_country" {
     error_message = "The WORM audit bucket must be created in the deployment region."
   }
 
+  # `location` is OPTIONAL on google_bigquery_dataset, so a null region does NOT fail the plan:
+  # it creates the dataset in the US multi-region and breaks residency while the gate stays
+  # green. That is not hypothetical, it is the bug this assertion was written after making.
+  assert {
+    condition     = google_bigquery_dataset.obligor.location == local.region
+    error_message = "The obligor dataset must be created in the deployment region, never a multi-region."
+  }
+
+  # PRESENCE, not the key id: under mock_provider the crypto key's id is unknown at plan time,
+  # so comparing against it is an unresolvable condition rather than a check. Presence is what
+  # matters anyway, because the failure mode is an ABSENT block: the resource then comes up
+  # encrypted under Google-managed keys, successfully, and looks identical in the console.
+  assert {
+    condition     = length(google_bigquery_dataset.obligor.default_encryption_configuration) == 1
+    error_message = "The obligor dataset must encrypt under the regional CMEK, not Google-managed keys."
+  }
+
   assert {
     condition     = one(google_org_policy_policy.resource_locations[*].spec[0].rules[0].values[0].allowed_values) == tolist(["in:${local.render_region}-locations"])
     error_message = "The org-policy location allowlist must pin exactly the deployment region's location group."

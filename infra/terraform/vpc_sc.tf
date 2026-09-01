@@ -33,6 +33,7 @@
 locals {
   perimeter_restricted_services = [
     "aiplatform.googleapis.com",
+    "bigquery.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "cloudtrace.googleapis.com",

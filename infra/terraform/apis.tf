@@ -40,6 +40,9 @@ locals {
     # nothing and costs nothing, and it is what keeps "CMEK does not cascade" from becoming a
     # step somebody forgets on the day they add the adapter.
     "aiplatform.googleapis.com",
+    # The obligor metrics and servicing dataset this vertical reads
+    # (bigquery.tf). Its CMEK service-agent binding is in kms.tf.
+    "bigquery.googleapis.com",
     "storage.googleapis.com",
 
     # Supporting services the above require.
