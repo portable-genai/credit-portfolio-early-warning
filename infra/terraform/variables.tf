@@ -36,7 +36,7 @@ variable "name_prefix" {
     catalog service deploys into the same project.
   EOT
   type        = string
-  default     = "agent"
+  default     = "doc7-svc"
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{2,18}$", var.name_prefix))
