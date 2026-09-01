@@ -38,6 +38,11 @@ locals {
     "roles/cloudtrace.agent",             # tracer.py
     "roles/secretmanager.secretAccessor", # the inbound and outbound service credentials
     "roles/aiplatform.user",              # the narration surface a vertical binds
+    # READ only, deliberately. This service proposes a grade and never applies
+    # one, and it has no ingestion path: the dataset is populated by whatever
+    # already spreads the book. dataEditor here would be authority nothing uses.
+    "roles/bigquery.dataViewer", # portfolio_feed.py (bigquery.tf)
+    "roles/bigquery.jobUser",    # running the query is a separate grant
   ]
 }
 
