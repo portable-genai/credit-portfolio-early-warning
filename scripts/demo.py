@@ -7,7 +7,7 @@ so a step that stops being true stops passing rather than stops being mentioned.
 
 Three properties make it worth running in front of somebody:
 
-* **Nothing is faked.** No stub service, no pre-baked JSON. The composite scores, the applied
+* **Nothing is faked.** No engine stub, no pre-baked JSON. The composite scores, the applied
   floor rules, the audit records, the routing references and the tamper verdict are produced by
   the shipped code, over the same synthetic estate the eval loads.
 * **It is bounded.** The demo proves an offline, single-process seam. It does not prove
