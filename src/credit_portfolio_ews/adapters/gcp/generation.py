@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from ...config import Settings
 
-_MODEL = "gemini-2.5-flash"
+_MODEL = "gemini-3.5-flash"
 _SYSTEM = (
     "You restate credit early-warning facts as JSON. You never introduce a figure, a date or a "
     "grade that was not given to you, and you never recommend a classification of your own."
