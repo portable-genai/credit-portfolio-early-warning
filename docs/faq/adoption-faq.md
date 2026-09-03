@@ -60,11 +60,11 @@ key the engine will look up.
 ### Does the gate run for my fork out of the box?
 
 The offline gate does: `make gate` needs no network, no credentials and no cloud SDK. Hosted CI is
-a different question. There are no workflow files to inherit, because GitHub Actions are disabled
-organization-wide and the workflows were retired; the required check is a Cloud Build trigger
-defined in `org-metadata/ci/gcp/repository-policy.json`. **A repository absent from that policy
-gets no trigger and no required check, and nothing reports the omission.** Register your fork, or
-stand up your own CI, before you rely on a gate.
+a different question. There are no HAND-WRITTEN workflow files to inherit: GitHub Actions is the
+fleet's live CI, and every repository's caller is RENDERED from the reviewed job contract in
+`org-metadata/ci/gcp/repository-policy.json`, never authored in the repository. **A repository
+absent from that policy gets no caller and no required check, and nothing reports the
+omission.** Register your fork, or stand up your own CI, before you rely on a gate.
 
 ### The eval reports high scores. Should we believe it?
 
@@ -82,7 +82,7 @@ import a client library in `domain/`: the purity scan in the gate will fail, whi
 ### Will the demo rot after I diverge?
 
 `tests/unit/test_demo_surface.py` drives the whole arc inside the offline gate and fails if a step
-has no expectation, and the hosted Cloud Build check runs that gate on every pull request. So the
+has no expectation, and the hosted GitHub Actions check runs that gate on every pull request. So the
 demo cannot rot silently while the gate is running. `make demo-selftest` runs the same arc
 headless on demand.
 
