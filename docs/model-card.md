@@ -82,7 +82,7 @@ synthetic data and it is not cleared to inform a lending decision.
 Unlike most repos in this catalog, the managed generation adapter here **is wired and does call a
 model**.
 
-- **Model**: `gemini-2.5-flash`, pinned as a module constant in
+- **Model**: `gemini-3.5-flash`, pinned as a module constant in
   `adapters/gcp/generation.py` so `config.generator_model` names it by reading the BINDING rather
   than a second settings string that could drift.
 - **Call shape**: `temperature=0.0`, `max_output_tokens=768`, `response_mime_type="application/json"`.
@@ -124,7 +124,7 @@ precedes the model, and the audit stores the redacted text.
 - **Managed-profile evaluation** (P-08, rule R5). `eval/run_eval.py` scores the deterministic
   pipeline with the local stub bound. Add a managed-profile run registered with the Hrz4 gate that
   scores memo groundedness and categorisation agreement with a real model bound.
-- **Model version drift.** `gemini-2.5-flash` is pinned in code, but nothing fails the build when
+- **Model version drift.** `gemini-3.5-flash` is pinned in code, but nothing fails the build when
   the served model behind that alias changes. Record the exact served version at each promotion.
 
 ---
