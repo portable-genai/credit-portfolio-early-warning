@@ -1,4 +1,4 @@
-"""FastAPI application for Credit Portfolio Early Warning (Doc7).
+"""FastAPI application for Credit Portfolio Early Warning (credit-portfolio-early-warning).
 
 Import-safe (the Container is built at request time, never at import; only ``Settings`` is read
 at import, to learn which identity adapter is bound, and no adapter is constructed), identity is
@@ -300,7 +300,8 @@ def watchlist_review(
     on the response, so the engine always receives an explicit date and a stored answer is
     self-describing.
 
-    Rule R8: a proposal that sets ``requires_human_review`` is ROUTED to the Hrz7 console inside
+    Rule R8: a proposal that sets ``requires_human_review`` is ROUTED to the human-review-console
+    inside
     the same request that produced it. Setting the flag is not the escalation; routing is, and
     ``review_ref`` says where it went. ``grade_applied`` is always false, and it is on the
     response as a typed field so a console can state it rather than imply it.

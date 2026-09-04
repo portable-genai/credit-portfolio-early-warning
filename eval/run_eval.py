@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Evaluation gate for Credit Portfolio Early Warning (Doc7).
+"""Evaluation gate for Credit Portfolio Early Warning (credit-portfolio-early-warning).
 
 Two named layers via ``--mode`` (the scaffold is ``agent_eval_kit.eval_main``):
 
 * **smoke** (default) - the offline pre-merge check CI runs on every change. It drives the REAL
-  ``WatchlistReviewService`` over the SDK-free local adapters, which serve the same synthetic
-  estate the demo drives, and scores every metric named in :data:`THRESHOLDS`.
-* **gate** - the promotion verdict from the shared Hrz4 authority (requires the ``gcp``
-  profile), resolved through the container's ``EvaluationGatePort`` so the authority is a
-  binding like every other port rather than a client constructed here.
+  ``WatchlistReviewService`` over the SDK-free local adapters, which serve the same synthetic estate
+  the demo drives, and scores every metric named in :data:`THRESHOLDS`. * **gate** - the promotion
+  verdict from the shared model-quality-gate authority (requires the ``gcp`` profile), resolved
+  through the container's ``EvaluationGatePort`` so the authority is a binding like every other port
+  rather than a client constructed here.
 
 Every metric that scores the ENGINE sits at 1.00 on purpose. They score a PURE FUNCTION against
 hand-written fixtures, so anything below is a defect rather than drift, and a threshold set
@@ -193,6 +193,6 @@ if __name__ == "__main__":
             smoke=run_smoke,
             gate=run_gate,
             default_dataset=DEFAULT_DATASET,
-            description="Offline / Hrz4 evaluation gate for Doc7.",
+            description="Offline / model-quality-gate for credit-portfolio-early-warning.",
         )
     )

@@ -1,11 +1,11 @@
 """CovenantTermsPort: READ the covenants credit-memo-drafting extracted at ORIGINATION.
 
-The catalog contract is that this service tests covenant compliance against the terms Doc2
-extracted when the facility was written, and is distinct from Doc2 precisely because it does not
-re-extract. That dependency has to be a NAMED boundary, or the first pragmatic change
-re-implements extraction here and the two services start disagreeing about the same covenant.
-The port also makes the direction visible in the import graph: this repo reads Doc2 and Doc2
-never reads this repo.
+The catalog contract is that this service tests covenant compliance against the terms
+credit-memo-drafting extracted when the facility was written, and is distinct from
+credit-memo-drafting precisely because it does not re-extract. That dependency has to be a NAMED
+boundary, or the first pragmatic change re-implements extraction here and the two services start
+disagreeing about the same covenant. The port also makes the direction visible in the import graph:
+this repo reads credit-memo-drafting and credit-memo-drafting never reads this repo.
 
 Two methods, because the term and its compliance certificate come from the same origination and
 agency process but at different times, and the certificate date is what separates a covenant that

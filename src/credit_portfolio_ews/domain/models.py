@@ -5,13 +5,13 @@ The artifacts THIS vertical produces, as opposed to the vertical-neutral machine
 rendered line whose length depends on ``friendly_name`` fails the repo's own format check for
 no reason but the length of its name.
 
-Two vocabularies here are consumed VERBATIM from the origination service (catalog id Doc2,
-repository ``credit-memo-drafting``): ``CovenantType`` and ``CovenantOperator``, member for
-member and wire value for wire value. They are re-declared rather than imported because the
-domain imports only the standard library plus the commons and Doc2 is reached over a port, but a
-divergent enum is how two services silently stop describing the same covenant, so
-``tests/unit/test_covenant_vocabulary.py`` pins the member set against what the Doc2-shaped
-fixture returns.
+Two vocabularies here are consumed VERBATIM from the origination service (catalog id
+credit-memo-drafting, repository ``credit-memo-drafting``): ``CovenantType`` and
+``CovenantOperator``, member for member and wire value for wire value. They are re-declared rather
+than imported because the domain imports only the standard library plus the commons and
+credit-memo-drafting is reached over a port, but a divergent enum is how two services silently stop
+describing the same covenant, so ``tests/unit/test_covenant_vocabulary.py`` pins the member set
+against what the credit-memo-drafting-shaped fixture returns.
 
 A fork building a different vertical rewrites this module and keeps ``kernel.py`` untouched.
 """
@@ -30,7 +30,8 @@ from .kernel import Citation, Decision, Severity
 class CovenantType(LenientStrEnum):
     """The financial-covenant kinds credit-memo-drafting extracts at origination.
 
-    Lenient so a type Doc2 adds later degrades to a readable unknown rather than crashing a
+    Lenient so a type credit-memo-drafting adds later degrades to a readable unknown rather than
+    crashing a
     portfolio sweep partway through.
     """
 
@@ -45,7 +46,9 @@ class CovenantType(LenientStrEnum):
 
 
 class CovenantOperator(LenientStrEnum):
-    """How an observed value is compared against a covenant threshold. Verbatim from Doc2."""
+    """How an observed value is compared against a covenant threshold. Verbatim from
+    credit-memo-drafting.
+    """
 
     LE = "<="
     LT = "<"
@@ -55,9 +58,10 @@ class CovenantOperator(LenientStrEnum):
 
 
 class CovenantStatus(LenientStrEnum):
-    """Doc2's three statuses plus the four that only exist AFTER origination.
+    """credit-memo-drafting's three statuses plus the four that only exist AFTER origination.
 
-    Doc2 has no need for the last four because at origination every term is freshly evidenced.
+    credit-memo-drafting has no need for the last four because at origination every term is freshly
+    evidenced.
     This repo lives entirely in the world where they happen. ``NOT_DUE`` and ``NOT_EVIDENCED``
     are deliberately different states: a covenant whose period is still open must not read as
     one nobody evidenced, and a covenant nobody tested must never read as one that passed.
@@ -237,10 +241,12 @@ class ArrearsSnapshot:
 class CovenantTerm:
     """One covenant as credit-memo-drafting extracted it, plus the post-origination fields.
 
-    Doc2 owns the type, description, metric, threshold and operator. The period end and the
+    credit-memo-drafting owns the type, description, metric, threshold and operator. The period end
+    and the
     certificate due date (which separate ``not_due`` from ``not_evidenced``), the waiver
     reference and expiry, the running consecutive-breach count and the per-term headroom
-    override do not exist at origination and are held here. ``citations`` carry the Doc2
+    override do not exist at origination and are held here. ``citations`` carry the
+    credit-memo-drafting
     provenance, so a reviewer traces the threshold back to the credit-agreement clause it was
     extracted from, in the other service. The engine never INFERS a waiver: it reads one over
     the port or there is none.

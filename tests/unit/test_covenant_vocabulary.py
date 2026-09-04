@@ -1,15 +1,16 @@
-"""The covenant vocabulary is consumed VERBATIM from credit-memo-drafting (Doc2).
+"""The covenant vocabulary is consumed VERBATIM from credit-memo-drafting (credit-memo-drafting).
 
-Doc2 extracts covenants at origination; this repo tests them afterwards. The two services must
-describe the same covenant with the same words, or a threshold extracted as ``leverage`` at
-origination becomes an ``other`` here and quietly stops being tested by the rule that names it.
+credit-memo-drafting extracts covenants at origination; this repo tests them afterwards. The two
+services must describe the same covenant with the same words, or a threshold extracted as
+``leverage`` at origination becomes an ``other`` here and quietly stops being tested by the rule
+that names it.
 
-The enum is RE-DECLARED rather than imported, because the domain imports only the standard
-library plus the commons and Doc2 is reached over a port. That is the right call for the import
-graph and the wrong one for drift, so this module is the compensating control: it pins the member
-set and every wire value against what a Doc2-shaped payload carries. A member added to
-``CovenantType`` here without a matching member there is drift this repo cannot see from inside,
-and this is where it becomes visible.
+The enum is RE-DECLARED rather than imported, because the domain imports only the standard library
+plus the commons and credit-memo-drafting is reached over a port. That is the right call for the
+import graph and the wrong one for drift, so this module is the compensating control: it pins the
+member set and every wire value against what a credit-memo-drafting-shaped payload carries. A member
+added to ``CovenantType`` here without a matching member there is drift this repo cannot see from
+inside, and this is where it becomes visible.
 """
 
 from __future__ import annotations
@@ -20,7 +21,8 @@ from credit_portfolio_ews.domain.models import (
     CovenantType,
 )
 
-#: The covenant kinds Doc2's extraction schema enumerates, verbatim. If Doc2 adds one, this list
+#: The covenant kinds credit-memo-drafting's extraction schema enumerates, verbatim. If
+#: credit-memo-drafting adds one, this list
 #: is the first thing to update, and the LenientStrEnum means an unknown value degrades to a
 #: readable failure rather than crashing a portfolio sweep in the meantime.
 DOC2_COVENANT_TYPES: tuple[str, ...] = (
@@ -34,11 +36,13 @@ DOC2_COVENANT_TYPES: tuple[str, ...] = (
     "other",
 )
 
-#: The comparison operators Doc2 emits, verbatim.
+#: The comparison operators credit-memo-drafting emits, verbatim.
 DOC2_OPERATORS: tuple[str, ...] = ("<=", "<", ">=", ">", "==")
 
-#: The three statuses Doc2 itself computes. This repo adds four that only exist AFTER
-#: origination, and they must be ADDITIVE: renaming one of Doc2's three would silently change
+#: The three statuses credit-memo-drafting itself computes. This repo adds four that only exist
+#: AFTER
+#: origination, and they must be ADDITIVE: renaming one of credit-memo-drafting's three would
+#: silently change
 #: what a shared status string means.
 DOC2_STATUSES: tuple[str, ...] = ("compliant", "at_risk", "breach")
 
@@ -66,7 +70,7 @@ def test_not_due_and_not_evidenced_are_deliberately_different_states() -> None:
 
 
 def test_the_vocabulary_is_lenient_so_a_future_doc2_member_degrades_readably() -> None:
-    """A sweep must not crash on a type Doc2 added last week."""
+    """A sweep must not crash on a type credit-memo-drafting added last week."""
     assert CovenantType("LEVERAGE") is CovenantType.LEVERAGE
     assert CovenantOperator(">=") is CovenantOperator.GE
 

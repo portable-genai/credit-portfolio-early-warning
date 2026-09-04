@@ -1,4 +1,4 @@
-# Credit Portfolio Early Warning (Doc7) runtime configuration.
+# Credit Portfolio Early Warning (credit-portfolio-early-warning) runtime configuration.
 #
 # Loaded by `src/credit_portfolio_ews/config.py`. Point at a different file with
 # CREDITEWS_SETTINGS; a path that is named but missing is a boot error, not
@@ -48,8 +48,8 @@ iap_audience: ${CREDITEWS_IAP_AUDIENCE:-}
 # deliberately distinct from this service's own inbound CREDITEWS_S2S_TOKEN.
 review_url: ${HUMAN_REVIEW_URL:-}
 
-# The origination service (credit-memo-drafting, catalog id Doc2) this repo READS covenant terms
-# from. Doc2 extracts covenants at origination; this repo tests them afterwards and never
+# The origination service (credit-memo-drafting, catalog id credit-memo-drafting) this repo READS covenant terms
+# from. credit-memo-drafting extracts covenants at origination; this repo tests them afterwards and never
 # re-extracts. Three-state: unset or emptied leaves the managed adapter with no endpoint, and it
 # REFUSES rather than returning an empty covenant set, because an obligor with no covenants is an
 # obligor nobody is monitoring.
@@ -59,7 +59,7 @@ credit_memo_url: ${CREDITEWS_CREDIT_MEMO_URL:-}
 # managed portfolio feed queries. It must sit in the residency region above.
 metrics_dataset: ${CREDITEWS_METRICS_DATASET:-}
 
-# The Hrz3 knowledge base the managed adverse-media adapter retrieves from.
+# The agent-registry knowledge base the managed adverse-media adapter retrieves from.
 knowledge_base_url: ${CREDITEWS_KNOWLEDGE_BASE_URL:-}
 
 # The grading system of record, READ ONLY. The port declares no write method in any profile, and
@@ -188,7 +188,7 @@ adapters:
 
 
   # Tracing. Which BACKEND a deployed profile exports to is not a binding: the gcp
-  # adapter reads OTEL_EXPORTER_OTLP_ENDPOINT and sends OTLP to the Hrz5 collector when it
+  # adapter reads OTEL_EXPORTER_OTLP_ENDPOINT and sends OTLP to the agent-observability collector when it
   # is set, straight to Cloud Trace when it is not. Tracing is not essential to correctness,
   # so onprem is ABSENT rather than fatal, unlike every other onprem placeholder here.
   tracer:
@@ -196,7 +196,7 @@ adapters:
     gcp: credit_portfolio_ews.adapters.gcp.tracer:CloudTracerAdapter
     onprem: credit_portfolio_ews.adapters.onprem.tracer:OnPremTracerAdapter
 
-  # The promotion authority (Hrz4). The local adapter scores offline but REFUSES to promote:
+  # The promotion authority (model-quality-gate). The local adapter scores offline but REFUSES to promote:
   # a promotion certified by a laptop with no quality service is certified by nothing.
   evaluation:
     local: credit_portfolio_ews.adapters.local.evaluation:LocalOfflineEvalAdapter

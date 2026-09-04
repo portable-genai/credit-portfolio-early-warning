@@ -1,4 +1,4 @@
-# SPEC: Credit Portfolio Early Warning (Doc7)
+# SPEC: Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 Locked decisions, pinned stack, contracts. This document is the deepest authority on intent.
 
@@ -25,9 +25,9 @@ Locked decisions. A change to any of them is a change to what the service MEANS,
   no model, no network and no settings object. Weights and caps are INTEGERS end to end, so no
   band edge is decided by float drift and a replay on another machine cannot land one point away
   in a different grade.
-- **The covenant vocabulary is consumed VERBATIM from credit-memo-drafting (Doc2)**, member for
+- **The covenant vocabulary is consumed VERBATIM from credit-memo-drafting (`credit-memo-drafting`)**, member for
   member and wire value for wire value, and so is the headroom arithmetic (the symmetric `abs()`
-  form, so a negative threshold does not invert the band). Doc2 extracts at origination; this
+  form, so a negative threshold does not invert the band). `credit-memo-drafting` extracts at origination; this
   repo tests afterwards and never re-extracts. `tests/unit/test_covenant_vocabulary.py` is the
   compensating control for the fact that the enum is re-declared rather than imported.
 - **Arrears materiality gates the past-due clock**, and it runs FIRST. Arrears are material only
@@ -107,7 +107,7 @@ default pass record.
 - **Determinism**: the composite, the band, the floors and the escalation are pure stdlib and
   replayable; an LLM may narrate but never produces any of them.
 - **Maker-checker (P-06) and routing (R8)**: a proposal that sets `requires_human_review` IS
-  routed through `ReviewRouterPort` to the Hrz7 console in the same request. The flag alone is
+  routed through `ReviewRouterPort` to the `human-review-console` in the same request. The flag alone is
   not the escalation. `required_approvals` is 2 when the proposal is into a non-performing grade,
   when the current grade is non-performing and the movement is an upgrade, or when the exposure is
   above the bank's threshold. The managed adapter refuses to run with no console configured.
@@ -164,7 +164,7 @@ default pass record.
   resolved server-side and the resolved headers are attached afterwards. The service credential
   is read from the server environment only. Framing and CORS are allowlists that refuse a
   wildcard however it is written, and an empty allowlist denies rather than opening up.
-- **Eval**: `--mode smoke` is the offline pre-merge check; `--mode gate` is the Hrz4 promotion
+- **Eval**: `--mode smoke` is the offline pre-merge check; `--mode gate` is the `model-quality-gate` promotion
   authority. The gate fails closed.
 - **Tests**: split into `unit`, `contract` and `integration`. The offline gate runs the first
   two; every integration module is marked, and that marking is itself enforced.

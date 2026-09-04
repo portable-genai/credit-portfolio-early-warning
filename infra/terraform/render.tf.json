@@ -4,6 +4,6 @@
     "render_region": "asia-southeast1",
     "render_package_name": "credit_portfolio_ews",
     "render_env_prefix": "CREDITEWS",
-    "render_catalog_id": "Doc7"
+    "render_repository": "credit-portfolio-early-warning"
   }
 }

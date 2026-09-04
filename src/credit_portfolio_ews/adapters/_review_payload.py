@@ -2,12 +2,13 @@
 
 Lives in the adapter layer, not the pure domain, because it depends on the kit. What arrives is
 already the redacted projection the service built once at its edge; this module redacts AGAIN,
-against EVERY jurisdiction's rows rather than only this deployment's, because Hrz7 is a SHARED
-sink: a proposal filed in one market may still quote another market's national id. Redaction is
-idempotent, so the second pass costs nothing and covers a future caller that forgot the first.
+against EVERY jurisdiction's rows rather than only this deployment's, because human-review-console
+is a SHARED sink: a proposal filed in one market may still quote another market's national id.
+Redaction is idempotent, so the second pass costs nothing and covers a future caller that forgot the
+first.
 
-``maker`` and ``tenant`` are asserted here and trusted by Hrz7 because the caller is an
-authenticated S2S service; per-hop on-behalf-of token exchange is the deferred next layer.
+``maker`` and ``tenant`` are asserted here and trusted by human-review-console because the caller is
+an authenticated S2S service; per-hop on-behalf-of token exchange is the deferred next layer.
 
 DUAL CONTROL is three-legged now, not severity-based: two approvals when the proposal is INTO a
 non-performing grade, when the current grade is non-performing and the movement is an UPGRADE, or
@@ -66,7 +67,8 @@ def _kit_citations(review: WatchlistReview) -> tuple[KitCitation, ...]:
 
 
 def review_to_payload(review: WatchlistReview, *, maker: str, tenant: str = "") -> Review:
-    """Build the review a producer submits to Hrz7 when a proposal must reach a human.
+    """Build the review a producer submits to human-review-console when a proposal must reach a
+    human.
 
     The summary states the proposal, the floors that produced it and the reasons it routed, and
     it states that NOTHING was applied: ``grade_applied`` is false on every payload, because no
@@ -98,7 +100,7 @@ def review_to_payload(review: WatchlistReview, *, maker: str, tenant: str = "") 
         case_ref=assessment.obligor_id,
         # Producer-owned, tenant-scoped key so a retried delivery is idempotent at the console.
         source_key=(
-            f"Doc7:{assessment.obligor_id}:{assessment.as_of.isoformat()}:"
+            f"credit-portfolio-early-warning:{assessment.obligor_id}:{assessment.as_of.isoformat()}:"
             f"{proposal.proposed_grade.value}"
         ),
         citations=_kit_citations(review),

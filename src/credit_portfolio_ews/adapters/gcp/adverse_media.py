@@ -1,4 +1,4 @@
-"""Managed AdverseMediaPort: the Hrz3 knowledge base's adverse-media collection.
+"""Managed AdverseMediaPort: the agent-registry knowledge base's adverse-media collection.
 
 The client is imported lazily inside the method, so the offline profiles bind this adapter and
 construct it with no cloud SDK installed. Each hit maps to an item carrying the document id and

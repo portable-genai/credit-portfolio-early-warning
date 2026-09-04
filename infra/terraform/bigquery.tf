@@ -27,7 +27,7 @@ resource "google_bigquery_dataset" "obligor" {
   # OPTIONAL on this resource, so a null here does not fail the plan: it silently
   # creates the dataset in the US multi-region and breaks residency with a green gate.
   location    = local.region # P-03
-  description = "Obligor financial metrics and servicing history for Doc7 (internal, CMEK)."
+  description = "Obligor financial metrics and servicing history for credit-portfolio-early-warning (internal, CMEK)."
 
   default_encryption_configuration {
     kms_key_name = google_kms_crypto_key.cmek.id # CMEK does not cascade (P-09)

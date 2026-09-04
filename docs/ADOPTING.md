@@ -1,6 +1,6 @@
 # Adopting this repo as your base
 
-This repository (Doc7, the Credit Portfolio Early Warning agent) is a **common base** that a bank
+This repository (`credit-portfolio-early-warning`, the Credit Portfolio Early Warning agent) is a **common base** that a bank
 or other lender forks to build its own **post-origination monitoring engine**: a service that
 tests covenant compliance against the terms extracted at origination, fuses early-warning signals
 from financial spreads, servicing behaviour and adverse news through a deterministic scoring
@@ -35,10 +35,10 @@ loading a line of credit logic; `domain/models.py` holds this service's request 
 |---|---|---|
 | **Vertical-neutral machinery** | `domain/kernel.py` (`Citation`, `AuditEvent`, `Severity`, `Decision`, `utcnow`), `domain/errors.py`, every Protocol in `ports/`, the container wiring in `config.py` | keep untouched |
 | **Policy (your numbers and sets)** | the whole of `EarlyWarningPolicy` in `domain/policy.py` (the signal rules, family caps, band floors, floor and ceiling grades, covenant and arrears weights, the past-due day counts, the materiality legs, the upgrade constraints, `min_data_completeness`, `dual_control_exposure_minor`), the jurisdiction rows in `domain/pii.py`, the metric thresholds in `eval/run_eval.py` | change deliberately (see section 4) |
-| **Vertical (the artifacts themselves)** | the Doc7 models in `domain/models.py` (`WatchGrade`, `CovenantType`, `CovenantOperator`, `CovenantStatus`, `SignalFamily`, `Ifrs9Backstop`, the obligor and review types), the engines (`early_warning.py`, `policy.py`), the orchestrator (`watchlist_service.py`), the narrator (`narration.py`), the local fixture corpora under `adapters/local/` and the eval golden sets | rewrite for your book |
+| **Vertical (the artifacts themselves)** | the `credit-portfolio-early-warning` models in `domain/models.py` (`WatchGrade`, `CovenantType`, `CovenantOperator`, `CovenantStatus`, `SignalFamily`, `Ifrs9Backstop`, the obligor and review types), the engines (`early_warning.py`, `policy.py`), the orchestrator (`watchlist_service.py`), the narrator (`narration.py`), the local fixture corpora under `adapters/local/` and the eval golden sets | rewrite for your book |
 
 If your product is another *observations-in, cited-and-graded-proposal-out* monitor, most of the
-hexagon, the three profiles, the deterministic-scoring pattern, the eval gate and the Hrz7 review
+hexagon, the three profiles, the deterministic-scoring pattern, the eval gate and the `human-review-console` review
 routing transfer directly; you replace the signal families and their sources, and retune the
 policy dataclass.
 
@@ -86,7 +86,7 @@ Terraform `name_prefix` variable enforces, so a stem the stack would refuse fail
 at plan time. `--package` must be a valid snake_case Python identifier. Add `--include-docs` to
 sweep Markdown prose too; without it the script leaves `.md` files alone so a code rename stays
 deterministic. The script skips itself, so the renamer is not left half-rewritten, and it renames
-`src/credit_portfolio_ews/` last, after the file contents are rewritten. The catalog id `Doc7` is
+`src/credit_portfolio_ews/` last, after the file contents are rewritten. The catalog id `credit-portfolio-early-warning` is
 left alone unless you pass `--catalog-id`, so a fork stays traceable to the entry it descends
 from. The script deliberately does NOT touch the human decisions below, and in particular it does
 not touch a single policy number: a fork that has run the renamer has rebranded a scorecard it
@@ -100,7 +100,7 @@ has not calibrated.
    signals actually predict deterioration in YOUR book, no outcome-monitoring plan and no
    independent validation. `composite_score` ranks attention; it does not estimate a probability
    of default and must not be read as one. Route the engine through your model-risk function
-   (Rsk4, `model-risk-validation`, is the sibling that owns this) before it informs a real credit
+   (the data-residency validator, `model-risk-validation`, is the sibling that owns this) before it informs a real credit
    decision. See [`model-card.md`](model-card.md) for the full list of what is unvalidated.
 2. **Region / residency.** The build defaults to `asia-southeast1` (MAS / Singapore), chosen once
    and shared: `config/settings.yaml:region`, `infra/terraform/render.tf.json:render_region` and
@@ -129,9 +129,9 @@ has not calibrated.
    `NewsRelevance` is the FEED's assertion, so a feed that marks everything confirmed leaves the
    family cap as the only defence and a name collision becomes a real signal.
 6. **The covenant vocabulary is consumed, not defined here.** `CovenantType` and
-   `CovenantOperator` are pinned verbatim to what `credit-memo-drafting` (Doc2) extracts at
-   origination, over `CovenantTermsPort`. Doc2 extracts, this repo tests, and no arrow points the
-   other way. If you fork both, change the vocabulary in Doc2 and take it here; changing it here
+   `CovenantOperator` are pinned verbatim to what `credit-memo-drafting` extracts at
+   origination, over `CovenantTermsPort`. `credit-memo-drafting` extracts, this repo tests, and no arrow points the
+   other way. If you fork both, change the vocabulary in `credit-memo-drafting` and take it here; changing it here
    alone makes origination and monitoring disagree about the same covenant.
 7. **The counters this service reads and never maintains.** `clean_periods` and
    `consecutive_breaches` arrive from upstream. A registry that never increments `clean_periods`
@@ -169,29 +169,29 @@ owned by sibling services, and you should integrate rather than rebuild them (se
 [`faq/features-faq.md`](faq/features-faq.md) for the full map). The `gcp` profile's adapters are
 the seams those integrations switch into:
 
-- **Doc2** `credit-memo-drafting`: the covenant terms extracted at origination, over
+- `credit-memo-drafting`: the covenant terms extracted at origination, over
   `CovenantTermsPort`. This repo tests covenants; it never extracts them, and it never invents a
   covenant the origination record does not carry.
-- **Hrz7** human-review / maker-checker console: every grading proposal is routed to it over the
+- `human-review-console` human-review / maker-checker console: every grading proposal is routed to it over the
   shared `review-kit` (rule R8); you wire your endpoint (`HUMAN_REVIEW_URL`), you do not
   re-implement the console. **The loop is deliberately open**: this service proposes and routes,
   and nothing here evidences that an approved re-grade reached the rating system of record.
   `GradeRegistryPort` declares read methods only, in every profile. Closing that loop is your
   integration work, and it is the one place where a fork most needs its own controls.
-- **Rsk4** `model-risk-validation`: owns the challenge and validation of the scoring engine. It
+- **the data-residency validator** `model-risk-validation`: owns the challenge and validation of the scoring engine. It
   is not optional for this repo (see decision 1).
-- **Hrz3** agent registry: this agent publishes its A2A card at
+- `agent-registry`: this agent publishes its A2A card at
   `/.well-known/agent-card.json`; register it rather than inventing a discovery mechanism.
-- **Hrz4** AI-quality / model-risk gate: owns promotion. `eval/run_eval.py --mode gate` is the
+- `model-quality-gate` AI-quality / model-risk gate: owns promotion. `eval/run_eval.py --mode gate` is the
   client half and refuses to run off the managed profile; the offline smoke mode mirrors the
   thresholds but never promotes.
-- **Hrz5** observability plus immutable WORM audit: audit events and trace spans go to it via
+- `agent-observability` plus immutable WORM audit: audit events and trace spans go to it via
   `AuditSinkPort` and `ObservabilityTracerPort`.
 
-The guardrail gateway (Hrz1) is **not** integrated today, and that matters more here than the
+The guardrail gateway (`agent-guardrail-gateway`) is **not** integrated today, and that matters more here than the
 usual boilerplate: untrusted adverse-media text DOES reach the model on the narration path,
-bounded only by a closed enum, a capped family and the no-external-floor rule. Hrz1 becomes
-mandatory the moment you widen any of those three. The enterprise knowledge base (Hrz2) is not
+bounded only by a closed enum, a capped family and the no-external-floor rule. `agent-guardrail-gateway` becomes
+mandatory the moment you widen any of those three. The enterprise knowledge base (`enterprise-knowledge-base`) is not
 integrated either.
 
 ## 6. Adoption checklist

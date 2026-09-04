@@ -71,7 +71,8 @@ def test_no_tool_accepts_an_identity_a_tenant_or_an_entitlement() -> None:
 
     A runtime derives each tool's JSON parameter schema from the signature, so a parameter here
     is a field a model fills in. ``actor`` used to be one, and it becomes the WORM audit actor
-    and the Hrz7 maker; ``tenant`` used to be one, and it is the authorisation scope the grade
+    and the human-review-console maker; ``tenant`` used to be one, and it is the authorisation scope
+    the grade
     registry filters on. ``tests/unit/test_api.py`` pins the same property for the HTTP surface;
     without this, the invariant held on one surface out of two.
     """

@@ -34,7 +34,8 @@ if TYPE_CHECKING:  # pragma: no cover - typing only, never imported at runtime
 #: It is a CONSTANT rather than a parameter, and that is the invariant rather than a convenience:
 #: identity is resolved and never accepted. A runtime derives each tool's JSON parameter schema
 #: from the signature below, so an ``actor`` argument would let a model choose the string that
-#: becomes the WORM audit actor and the Hrz7 maker, and a ``tenant`` argument would let it choose
+#: becomes the WORM audit actor and the human-review-console maker, and a ``tenant`` argument would
+#: let it choose
 #: whose book to read. The HTTP surface has never carried either (``WatchlistReviewRequest``
 #: names only the obligor and the period), and this one now matches it. When a runtime can
 #: propagate a verified end user, it arrives through the same server-side resolution the API
