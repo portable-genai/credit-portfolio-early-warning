@@ -1,4 +1,4 @@
-# ARCHITECTURE: Credit Portfolio Early Warning (Doc7)
+# ARCHITECTURE: Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 Hexagonal ports-and-adapters. A pure-stdlib domain core speaks only to ports (`typing.Protocol`s);
 adapter families implement them; one env var (`CREDITEWS_PROFILE`) swaps the
@@ -77,13 +77,13 @@ behavioural suites cannot quietly assert different things.
 ## Request pipeline (`WatchlistReviewService.review`)
 
 read the obligor and its grade of record from the registry (which has no write method) -> read
-the covenant terms Doc2 extracted at origination and their observations for the resolved period
+the covenant terms `credit-memo-drafting` extracted at origination and their observations for the resolved period
 -> read the arrears snapshot and the metric window -> retrieve adverse media and let the model
 CATEGORISE only the items the feed already confirmed -> **evaluate with the pure engine** ->
 build the redacted projection ONCE at the service edge -> write the already-redacted WORM audit
 record -> draft and validate the memo from that same masked object, discarding it on any failure
 -> compute `required_approvals` (the only place exposure is read) -> **route every consequential
-proposal to Hrz7 (R8)** -> return the engine's own assessment to the authenticated credit officer,
+proposal to `human-review-console` (R8)** -> return the engine's own assessment to the authenticated credit officer,
 who has to act on the covenant text.
 
 The audit actor and the review maker are both the verified `Principal`, never the request body.
@@ -93,9 +93,9 @@ never depends on a later job that may not exist. Nothing in this pipeline applie
 ## The dependency direction
 
 ```
-credit-memo-drafting (Doc2)  --covenant terms-->  credit-portfolio-early-warning (Doc7)
+credit-memo-drafting (`credit-memo-drafting`)  --covenant terms-->  credit-portfolio-early-warning (`credit-portfolio-early-warning`)
                                                           |
-                                                          +--proposal--> Hrz7 review console
+                                                          +--proposal--> `human-review-console`
                                                           |
 grade registry (system of record)  --read only-->  (no arrow back)
 ```
@@ -131,12 +131,12 @@ redaction test is worse than none.
 |---|---|---|---|---|
 | `AuditSinkPort` | hash-chained SQLite WORM (commons) | Cloud Logging WORM (lazy) | placeholder | an unwritten audit record is an unrecorded decision |
 | `IdentityPort` | seeded personas (commons) | IAP assertion (lazy) | placeholder | it decides whether the exposure guard may stand down |
-| `ReviewRouterPort` | review-kit outbox (offline, inspectable) | Hrz7 service intake over S2S | placeholder | a router that returned would convert a downgrade proposal into a decision nobody reviewed |
+| `ReviewRouterPort` | review-kit outbox (offline, inspectable) | `human-review-console` service intake over S2S | placeholder | a router that returned would convert a downgrade proposal into a decision nobody reviewed |
 | `ObservabilityTracerPort` | no-op | Cloud Trace or OTLP (lazy) | ABSENT by design | a diagnostic must never be fatal |
-| `EvaluationGatePort` | offline scorer, refuses to promote | Hrz4 authority | placeholder | a promotion certified by a laptop is certified by nothing |
-| `CovenantTermsPort` | the shared fixture estate, tenant-scoped | Doc2's authenticated read API (lazy OIDC) | placeholder | an empty covenant set is indistinguishable from an obligor with no covenants, and an obligor with no covenants is an obligor nobody is monitoring |
+| `EvaluationGatePort` | offline scorer, refuses to promote | `model-quality-gate` authority | placeholder | a promotion certified by a laptop is certified by nothing |
+| `CovenantTermsPort` | the shared fixture estate, tenant-scoped | `credit-memo-drafting`'s authenticated read API (lazy OIDC) | placeholder | an empty covenant set is indistinguishable from an obligor with no covenants, and an obligor with no covenants is an obligor nobody is monitoring |
 | `PortfolioFeedPort` | the fixture window and arrears snapshots | BigQuery metrics and servicing views (lazy, parameterised) | placeholder | an empty window presents a stressed obligor as a clean one, and a missing snapshot presents an obligor in default as current |
-| `AdverseMediaPort` | a small fixture corpus with one UNCONFIRMED item | the Hrz3 knowledge base (lazy) | placeholder | an unconfigured feed and an obligor with no coverage must not look the same. An EMPTY result from a configured feed is a real answer |
+| `AdverseMediaPort` | a small fixture corpus with one UNCONFIRMED item | the `agent-registry` knowledge base (lazy) | placeholder | an unconfigured feed and an obligor with no coverage must not look the same. An EMPTY result from a configured feed is a real answer |
 | `GradeRegistryPort` | the fixture estate, read only | the managed grade store, read only, viewer role only | placeholder, and it must STAY read-only when rebound | a defaulted grade of record makes every obligor look unchanged and nothing is ever proposed |
 | `GenerationPort` | a deterministic offline narrator that drives the REAL validation | the pinned Vertex model at temperature zero (lazy) | placeholder | the memo is drafting, so this refusal costs a paragraph and never a decision |
 

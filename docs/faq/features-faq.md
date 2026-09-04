@@ -7,7 +7,7 @@ repo stops.
 
 It reviews one obligor for one reporting period and proposes a watchlist grade, with reasons.
 
-1. **Tests covenants** against the terms `credit-memo-drafting` (Doc2) extracted at origination,
+1. **Tests covenants** against the terms `credit-memo-drafting` extracted at origination,
    read over `CovenantTermsPort`. Each test produces a `CovenantStatus`: compliant, in a headroom
    band, breached, waived, or untestable because the reporting is stale.
 2. **Runs the arrears clocks.** Days past due are measured against the material-arrears legs, and
@@ -16,7 +16,7 @@ It reviews one obligor for one reporting period and proposes a watchlist grade, 
    into a `composite_score`, with each signal family capped.
 4. **Applies the ladder.** The score maps to a `WatchGrade` through `band_floors`, and floor rules
    (a breach, a repeat breach, an arrears clock, a restructuring) override the band adversely.
-5. **Drafts a cited review memo** and routes the whole proposal to a human reviewer (Hrz7).
+5. **Drafts a cited review memo** and routes the whole proposal to a human reviewer (`human-review-console`).
 
 Every figure it states carries a citation. A signal with no citation does not enter the
 assessment.
@@ -71,14 +71,14 @@ and the audit projection.
 
 | Sibling | Boundary |
 |---|---|
-| **Doc2** `credit-memo-drafting` | Extracts covenants at origination. This repo tests them afterwards. The vocabulary is consumed verbatim over `CovenantTermsPort` so the two cannot disagree, and no arrow points the other way. |
-| **Rsk4** `model-risk-validation` | Owns challenge and validation of the scoring engine. Not optional here. |
-| **Hrz7** human-review console | Owns the maker-checker workflow. This repo routes to it (rule R8); it does not re-implement a console. |
-| **Hrz3** agent registry | Discovery. The A2A card is published at `/.well-known/agent-card.json`. |
-| **Hrz4** eval / quality gate | Owns promotion verdicts. |
-| **Hrz5** observability and WORM audit | Owns the immutable audit sink and traces. |
-| **Hrz1** guardrail gateway | **Not bound.** See the security FAQ; it matters here because adverse-media text reaches the model. |
-| **Hrz2** enterprise knowledge base | Not integrated. |
+| `credit-memo-drafting` | Extracts covenants at origination. This repo tests them afterwards. The vocabulary is consumed verbatim over `CovenantTermsPort` so the two cannot disagree, and no arrow points the other way. |
+| **the data-residency validator** `model-risk-validation` | Owns challenge and validation of the scoring engine. Not optional here. |
+| `human-review-console` | Owns the maker-checker workflow. This repo routes to it (rule R8); it does not re-implement a console. |
+| `agent-registry` | Discovery. The A2A card is published at `/.well-known/agent-card.json`. |
+| `model-quality-gate` eval / quality gate | Owns promotion verdicts. |
+| `agent-observability` and WORM audit | Owns the immutable audit sink and traces. |
+| `agent-guardrail-gateway` | **Not bound.** See the security FAQ; it matters here because adverse-media text reaches the model. |
+| `enterprise-knowledge-base` | Not integrated. |
 
 ### Can I demo it without a cloud project?
 
@@ -91,6 +91,6 @@ stops being true.
 
 The honest list lives in the catalog row and in [`../../COMPLIANCE.md`](../../COMPLIANCE.md). The
 headline items: the scoring engine is uncalibrated and unvalidated (see the model card); this
-vertical's own BigQuery and adverse-media resources are not in `infra/terraform/`; Hrz1, Hrz5 and
-the Hrz3 registration are unwired; and the loop back from an approved re-grade to the rating
+vertical's own BigQuery and adverse-media resources are not in `infra/terraform/`; `agent-guardrail-gateway`, `agent-observability` and
+the `agent-registry` registration are unwired; and the loop back from an approved re-grade to the rating
 system of record is deliberately open, because this repo will never write one.

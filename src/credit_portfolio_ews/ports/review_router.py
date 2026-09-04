@@ -1,7 +1,8 @@
-"""ReviewRouterPort: the boundary that routes a watchlist proposal to Hrz7 (rule R8).
+"""ReviewRouterPort: the boundary that routes a watchlist proposal to human-review-console (rule
+R8).
 
 Rule R8 is the reason this port exists. A producer that sets ``requires_human_review`` MUST hand
-the item to the Hrz7 Human-Review and Maker-Checker Console; terminating the escalation in a
+the item to the human-review-console; terminating the escalation in a
 per-repo boolean is the failure this port removes, because a flag nobody reads is auto-execution
 with extra steps. Setting the flag and calling :meth:`route` is one act, not two optional ones.
 
@@ -24,7 +25,7 @@ from ..domain.models import WatchlistReview
 @runtime_checkable
 class ReviewRouterPort(Protocol):
     def route(self, review: WatchlistReview, *, maker: str, tenant: str = "") -> str:
-        """Route a proposal to Hrz7 and return the routing reference.
+        """Route a proposal to human-review-console and return the routing reference.
 
         ``maker`` is the VERIFIED principal that originated the underlying review, never a
         client-asserted actor; the checker is the credit officer who holds the delegated

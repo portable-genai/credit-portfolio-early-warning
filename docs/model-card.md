@@ -1,4 +1,4 @@
-# Model card: Credit Portfolio Early Warning (Doc7)
+# Model card: Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 This is a STARTER model card. It records the model boundary as built and the controls that must
 be completed before this service informs a real credit decision.
@@ -28,7 +28,7 @@ What is missing, stated plainly so nobody has to discover it:
 | Backtest | **Absent.** Nothing in this repo measures whether a flagged obligor subsequently deteriorated, or whether an unflagged one did not. There is no historical sample here to measure against. |
 | Discriminatory power | **Unmeasured.** No AUC, no Gini, no rank-order statistic. `composite_score` has never been shown to separate deteriorating obligors from stable ones. |
 | Outcome monitoring | **Absent.** No plan and no mechanism for tracking realised outcomes against proposals. |
-| Independent validation | **Absent.** Not reviewed by a validation function. `model-risk-validation` (Rsk4) is the sibling that owns this and has not seen it. |
+| Independent validation | **Absent.** Not reviewed by a validation function. `model-risk-validation` (the data-residency validator) is the sibling that owns this and has not seen it. |
 | Override and challenge log | **Absent.** Nothing records where a credit officer disagreed with a proposal, which is the cheapest early evidence a scorecard is mis-calibrated. |
 
 ### What `composite_score` is, and is not
@@ -69,7 +69,7 @@ These are real and worth keeping through any recalibration:
 3. Recalibrate `EarlyWarningPolicy` against that sample, and record the fitted values and the
    date. Delete the reference defaults rather than leaving them as a fallback.
 4. Define outcome monitoring and the trigger levels at which the scorecard is re-fitted.
-5. Submit to independent validation (Rsk4) and record the finding here.
+5. Submit to independent validation (the data-residency validator) and record the finding here.
 6. Log officer overrides from day one, including during pilot.
 
 Until steps 1 to 5 are complete, this engine is a demonstrator. It is safe to run offline against
@@ -108,11 +108,11 @@ precedes the model, and the audit stores the redacted text.
 
 ### Remaining controls on the narration path (TODO, repo owner)
 
-- **Prompt-injection screening** (rule R1). The Hrz1 guardrail gateway is **not** bound today, and
+- **Prompt-injection screening** (rule R1). The `agent-guardrail-gateway` is **not** bound today, and
   untrusted third-party text DOES reach the model: an adverse-media headline and snippet are
   written by someone outside the bank about the obligor. The three things standing in the way of
   that mattering are the closed output enum, the `EXTERNAL` family cap and the rule that an
-  external signal can never floor a grade. Bind Hrz1 before widening any of those three, and fail
+  external signal can never floor a grade. Bind `agent-guardrail-gateway` before widening any of those three, and fail
   closed to deterministic-only when the screen is unavailable.
 - **Per-tenant token budget and rate limit** (P-10). `max_output_tokens` bounds one reply; nothing
   bounds a caller's aggregate spend.
@@ -122,7 +122,7 @@ precedes the model, and the audit stores the redacted text.
 - **Reasoning trace** (P-07). The audit record carries the redacted assessment and its citations,
   not a prompt and reply pair.
 - **Managed-profile evaluation** (P-08, rule R5). `eval/run_eval.py` scores the deterministic
-  pipeline with the local stub bound. Add a managed-profile run registered with the Hrz4 gate that
+  pipeline with the local stub bound. Add a managed-profile run registered with the `model-quality-gate` that
   scores memo groundedness and categorisation agreement with a real model bound.
 - **Model version drift.** `gemini-3.5-flash` is pinned in code, but nothing fails the build when
   the served model behind that alias changes. Record the exact served version at each promotion.

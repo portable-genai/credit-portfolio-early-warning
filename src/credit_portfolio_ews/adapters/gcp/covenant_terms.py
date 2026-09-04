@@ -1,8 +1,8 @@
 """Managed CovenantTermsPort: READ credit-memo-drafting's origination extract over its API.
 
-The S2S credential is a Google-signed OIDC ID token addressed to Doc2's audience, so the lazy
-``google.auth`` import is the first thing the token helper does and an offline caller gets an
-ImportError there rather than at construction. The HTTP itself is stdlib ``urllib``, so no extra
+The S2S credential is a Google-signed OIDC ID token addressed to credit-memo-drafting's audience, so
+the lazy ``google.auth`` import is the first thing the token helper does and an offline caller gets
+an ImportError there rather than at construction. The HTTP itself is stdlib ``urllib``, so no extra
 runtime dependency is pulled in.
 
 An UNSET or emptied endpoint RAISES naming the variable rather than returning an empty tuple.
@@ -44,7 +44,7 @@ def _as_date(raw: Any) -> date | None:
 
 
 class CloudCovenantTerms:
-    """Read the origination covenant extract from Doc2's authenticated read API."""
+    """Read the origination covenant extract from credit-memo-drafting's authenticated read API."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -106,7 +106,9 @@ class CloudCovenantTerms:
         try:
             with urllib.request.urlopen(request, timeout=10) as response:  # noqa: S310 - fixed base
                 return response.status, json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:  # pragma: no cover - needs a live Doc2
+        except (
+            urllib.error.HTTPError
+        ) as exc:  # pragma: no cover - needs a live credit-memo-drafting
             if exc.code == 403:
                 raise CrossTenantError(
                     f"obligor {obligor_id!r} is not in tenant {tenant!r}"

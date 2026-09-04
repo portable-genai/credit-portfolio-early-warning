@@ -6,8 +6,8 @@ keep in step.
 
 ## What this is
 
-Credit Portfolio Early Warning (Doc7): post-origination monitoring of the lending book. Covenant
-compliance is tested against the terms credit-memo-drafting (Doc2) extracts at origination,
+Credit Portfolio Early Warning (`credit-portfolio-early-warning`): post-origination monitoring of the lending book. Covenant
+compliance is tested against the terms credit-memo-drafting (`credit-memo-drafting`) extracts at origination,
 early-warning signals are fused from financial spreads, transaction patterns and adverse news by a
 deterministic scoring engine, and cited watchlist-grading proposals and review memos are drafted
 for the credit officer. It NEVER re-grades an obligor: the grade registry port declares read
@@ -47,7 +47,7 @@ Hexagonal, ports and adapters:
 - `src/credit_portfolio_ews/domain/` is PURE stdlib. No web framework, no cloud SDK,
   no HTTP. `kernel.py` holds the vertical-neutral machinery and is untouched by this vertical.
   The vertical's own modules are:
-  - `models.py` : the artifacts. The covenant vocabulary consumed verbatim from Doc2, the
+  - `models.py` : the artifacts. The covenant vocabulary consumed verbatim from `credit-memo-drafting`, the
     supervisory grade ladder with its rank map, the evidence records and the result types.
   - `policy.py` : the frozen `EarlyWarningPolicy`, `SignalRule`, the shipped rule set and
     `validate_policy`, loaded from the `policy:` block of `config/settings.yaml`.

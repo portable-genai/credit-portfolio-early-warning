@@ -1,4 +1,4 @@
-# Credit Portfolio Early Warning (Doc7) serving image.
+# Credit Portfolio Early Warning (credit-portfolio-early-warning) serving image.
 #
 # Supply-chain hardening (practices checks D1/D2/D4): the base image is DIGEST-pinned so a
 # re-pushed tag cannot change what ships, dependencies come from the committed lockfile rather

@@ -15,7 +15,7 @@ described.
 | Profile | For | Adapters |
 |---|---|---|
 | `local` | laptops, CI, demos | fixture portfolio feed, fixture covenant terms, fixture adverse media, deterministic narration stub, in-process audit and tracer. No SDK, no network, no credentials. |
-| `gcp` | the managed deployment | BigQuery-backed feed, A2A client to Doc2 for covenant terms, managed adverse-media feed, the pinned Vertex model for narration, Hrz5 for audit and traces. |
+| `gcp` | the managed deployment | BigQuery-backed feed, A2A client to `credit-memo-drafting` for covenant terms, managed adverse-media feed, the pinned Vertex model for narration, `agent-observability` for audit and traces. |
 | `onprem` | a client-hosted install | fail-fast placeholders naming the client system to bind. |
 
 Selection is one variable, `CREDITEWS_PROFILE`, and it is three-state: unset, set-and-empty and
@@ -55,7 +55,7 @@ model card lists making it an operator action as an open control.
 ### What has to be replaced on the way out, specifically?
 
 The ports, one by one: `PortfolioFeedPort` (obligor metrics and servicing data), `CovenantTermsPort`
-(the origination covenant record, from Doc2 or your own), `AdverseMediaPort`, `GradeRegistryPort`
+(the origination covenant record, from `credit-memo-drafting` or your own), `AdverseMediaPort`, `GradeRegistryPort`
 (read-only), `GenerationPort` (optional, see above), `IdentityPort`, `TenancyPort`,
 `AuditSinkPort`, `ObservabilityTracerPort` and `ReviewRouterPort`.
 

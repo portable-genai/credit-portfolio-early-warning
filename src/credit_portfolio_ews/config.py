@@ -439,7 +439,7 @@ class Settings:
     #: that verifies perfectly. Empty means no anchor, which is right for the ephemeral
     #: ``:memory:`` store and wrong for anything durable.
     audit_anchor_path: str = ""
-    #: Base URL of the Hrz7 Human-Review console the R8 producer path submits to.
+    #: Base URL of the human-review-console Human-Review console the R8 producer path submits to.
     review_url: str = ""
     #: The audience the managed IAP identity adapter verifies the signed assertion AGAINST: the
     #: IAP-protected resource, ``/projects/<NUM>/global/backendServices/<ID>`` behind an HTTPS
@@ -452,7 +452,8 @@ class Settings:
     iap_audience: str = ""
     #: Tenant partition asserted on outbound reviews when the principal carries none.
     tenant: str = ""
-    #: The credit-memo-drafting (Doc2) read API the managed covenant feed reads origination
+    #: The credit-memo-drafting (credit-memo-drafting) read API the managed covenant feed reads
+    #: origination
     #: covenants from. Three-state through the settings file: unset and emptied both arrive as
     #: empty, and an empty endpoint makes the managed adapter REFUSE rather than return an empty
     #: covenant set, because an obligor with no covenants is an obligor nobody is monitoring.
@@ -460,7 +461,8 @@ class Settings:
     #: The BigQuery dataset ("project.dataset") holding the obligor-metrics and servicing views
     #: the managed portfolio feed queries. Empty makes that adapter refuse.
     metrics_dataset: str = ""
-    #: The Hrz3 knowledge base the managed adverse-media adapter retrieves from. Empty refuses.
+    #: The agent-registry knowledge base the managed adverse-media adapter retrieves from. Empty
+    #: refuses.
     knowledge_base_url: str = ""
     #: The managed grading system of record, READ ONLY. Empty refuses: a defaulted grade of
     #: record would make every obligor look unchanged and nothing would ever be proposed.

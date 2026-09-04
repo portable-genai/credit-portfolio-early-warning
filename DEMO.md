@@ -1,4 +1,4 @@
-# DEMO: Credit Portfolio Early Warning (Doc7)
+# DEMO: Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 Everything here runs **offline**: no cloud project, no credentials, no API key, no browser
 engine, no bundler. That is the first thing to say out loud, because it is the claim the rest of

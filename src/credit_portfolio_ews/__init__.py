@@ -1,4 +1,4 @@
-"""Credit Portfolio Early Warning (Doc7).
+"""Credit Portfolio Early Warning (credit-portfolio-early-warning).
 
 Post-origination covenant monitoring and cited early-warning watchlist proposals.
 

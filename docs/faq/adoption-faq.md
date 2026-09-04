@@ -18,7 +18,7 @@ It rewrites the package name (which is also the console script), the `CREDITEWS_
 including the bare token `infra/terraform/render.tf.json` carries as `render_env_prefix` and the
 backticked form the docs carry, the Terraform `name_prefix` resource stem (`doc7-svc`) and the
 distribution id. Add `--include-docs` to sweep Markdown prose too. It skips itself, so the renamer
-is not left half-rewritten, and it renames the package directory last. The catalog id `Doc7` is
+is not left half-rewritten, and it renames the package directory last. The catalog id `credit-portfolio-early-warning` is
 kept unless you pass `--catalog-id`, so a fork stays traceable to what it descends from.
 
 Then recreate the venv (the distribution name changed) and run `make gate`.
@@ -36,7 +36,7 @@ adapters, branding and the regulator crosswalk.
 - **A calibrated scorecard.** The shipped `EarlyWarningPolicy` is a reference. This is the big one;
   see [`../model-card.md`](../model-card.md).
 - **A portfolio feed**: obligor metrics and servicing data behind `PortfolioFeedPort`.
-- **Covenant terms**: from Doc2 or your own origination record, behind `CovenantTermsPort`.
+- **Covenant terms**: from `credit-memo-drafting` or your own origination record, behind `CovenantTermsPort`.
 - **An adverse-media feed** behind `AdverseMediaPort`.
 - **A grade registry to read** behind `GradeRegistryPort`, and separately a decision about how an
   approved change gets written, which this repo will never do.
@@ -88,7 +88,7 @@ headless on demand.
 
 ### What is still open?
 
-The catalog row for Doc7 carries the honest list. In short: the scoring engine is uncalibrated and
-unvalidated; this vertical's cloud resources are not in Terraform; Hrz1, Hrz5 and Hrz3 are
+The catalog row for `credit-portfolio-early-warning` carries the honest list. In short: the scoring engine is uncalibrated and
+unvalidated; this vertical's cloud resources are not in Terraform; `agent-guardrail-gateway`, `agent-observability` and `agent-registry` are
 unwired; no Docker image has been built; the demo pages have not been rehearsed; and the loop back
 to the rating system of record is open by design.

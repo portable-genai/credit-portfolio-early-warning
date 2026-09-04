@@ -18,7 +18,7 @@ and nothing more.
 
 A human, always. The service proposes and never applies: `grade_applied` is typed `False` on every
 response and `GradeRegistryPort` declares read methods only in every profile, so no write path to
-the grading system of record exists in this build. Every proposal is routed to the Hrz7
+the grading system of record exists in this build. Every proposal is routed to the `human-review-console`
 maker-checker console in the same call that produced it (rule R8). Exposure above
 `dual_control_exposure_minor` requires two approvers rather than one.
 
@@ -72,7 +72,7 @@ path, adverse-direction-only floors, capped external family, mandatory human rev
 Not present, and this is the material point: no conceptual-soundness write-up, no development
 evidence, no backtest, no discriminatory-power measure, no outcome monitoring, no override log and
 no independent validation. The eval scores the engine against ITS OWN golden set, which proves
-internal consistency and not predictive validity. `model-risk-validation` (Rsk4) is the sibling
+internal consistency and not predictive validity. `model-risk-validation` (the data-residency validator) is the sibling
 that owns the challenge, and it has not seen this.
 
 ### Which regulations does this claim to satisfy?
@@ -86,7 +86,7 @@ ladder is a starting point rather than a compliance claim.
 ### What is still open at go-live?
 
 Model risk first, in the order given in the model card. Then: this vertical's cloud resources in
-Terraform, the Hrz1 guardrail binding before any widening of the adverse-media path, Hrz5 and Hrz3
+Terraform, the `agent-guardrail-gateway` binding before any widening of the adverse-media path, `agent-observability` and `agent-registry`
 wiring, the alert on the age of `watchlist_since` (because this repo cannot detect an upstream
 that never increments `clean_periods`), and the decision about how an approved re-grade reaches
 your rating system.

@@ -1,4 +1,4 @@
-# Credit Portfolio Early Warning (Doc7)
+# Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 Post-origination monitoring of the lending book. Covenant compliance is tested against the terms
 [credit-memo-drafting](https://github.com/portable-genai/credit-memo-drafting) extracts at
@@ -6,7 +6,7 @@ origination; early-warning signals are fused from financial spreads, transaction
 adverse news by a deterministic scoring engine; and cited watchlist-grading proposals and review
 memos are drafted for the credit officer. It never re-grades an obligor autonomously.
 
-The boundary against credit-memo-drafting (catalog id Doc2) is the one to state first: **Doc2
+The boundary against credit-memo-drafting (catalog id `credit-memo-drafting`) is the one to state first: **`credit-memo-drafting`
 extracts covenants at origination, and this repo tests them afterwards.** The covenant vocabulary
 is consumed verbatim over a port, so origination and monitoring cannot disagree about the same
 covenant, and no arrow points the other way.
@@ -88,7 +88,7 @@ See `docs/runbook.md`.
 | Package | Used for |
 |---|---|
 | `hex-service-kit` | `Principal` / `IdentityPort` / seeded personas, fail-closed bind + CORS, `make_require_service_caller` / the app-object exposure guard / security headers (the end-user dependency is this repo's own, so a deployment that can authenticate nobody answers with a status and a reason rather than a blanket 401), the hash-chained WORM audit log, `StrEnum` taxonomies |
-| `agent-eval-kit` | the `--mode smoke\|gate` scaffold, the Hrz4 gate client, the not-falsely-green harness |
+| `agent-eval-kit` | the `--mode smoke\|gate` scaffold, the `model-quality-gate` client, the not-falsely-green harness |
 | `pii-kit` | the jurisdiction PII pattern pack the redaction seam masks with |
 | `review-kit` | the rule R8 producer path: the review payload, the submission client and the outbox |
 

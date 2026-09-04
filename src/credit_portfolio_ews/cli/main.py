@@ -23,7 +23,9 @@ def main(argv: list[str] | None = None) -> int:
     review_cmd.add_argument("--test-period", default="", help="Empty means the latest reported.")
     review_cmd.add_argument("--as-of", default="", help="ISO date. Empty means today.")
     review_cmd.add_argument("--actor", default="cli-user@bank.example")
-    review_cmd.add_argument("--tenant", default="", help="Tenant partition asserted to Hrz7.")
+    review_cmd.add_argument(
+        "--tenant", default="", help="Tenant partition asserted to human-review-console."
+    )
 
     list_cmd = sub.add_parser("obligors", help="List the obligors this tenant's registry holds.")
     list_cmd.add_argument("--tenant", default="")

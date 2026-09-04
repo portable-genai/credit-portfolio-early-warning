@@ -21,12 +21,12 @@
   rephrase. Synthetic, obviously fictional data only: fictional parties, `.example` domains,
   RFC 5737 and RFC 3849 addresses.
 - **Commits are authored solely by the maintainer.** No co-author trailers.
-- **The covenant vocabulary is Doc2's, not ours.** A member added to `CovenantType` or
+- **The covenant vocabulary is `credit-memo-drafting`'s, not ours.** A member added to `CovenantType` or
   `CovenantOperator` without a matching member in credit-memo-drafting is DRIFT this repo cannot
   see from inside: the enum is re-declared rather than imported, because the domain imports only
   the standard library plus the commons. `tests/unit/test_covenant_vocabulary.py` is the
   compensating control, and it pins the member set and every wire value against what a
-  Doc2-shaped payload carries. Update Doc2 first, then this repo, then that test.
+  `credit-memo-drafting`-shaped payload carries. Update `credit-memo-drafting` first, then this repo, then that test.
 - **The grade registry stays READ ONLY.** `tests/unit/test_registry_is_read_only.py` checks two
   independent things, because a Protocol is structural and an adapter can satisfy one while
   carrying more: (1) the Protocol's public method set is exactly `obligor` and `list_obligors`,

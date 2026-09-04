@@ -17,9 +17,9 @@ a model in the supervisory sense, it ships uncalibrated reference weights, and i
 Every page here assumes you know that.
 
 These FAQs deliberately do **not** re-document capabilities owned by sibling systems in the
-catalog. Where a concern belongs to another repo (covenant extraction at origination in Doc2,
-model validation in Rsk4, the guardrail gateway Hrz1, the knowledge base Hrz2, the agent registry
-Hrz3, the eval platform Hrz4, observability and WORM audit Hrz5, the human-review console Hrz7),
+catalog. Where a concern belongs to another repo (covenant extraction at origination in `credit-memo-drafting`,
+model validation in the data-residency validator, the guardrail gateway `agent-guardrail-gateway`, the knowledge base `enterprise-knowledge-base`, the agent registry
+`agent-registry`, the eval platform `model-quality-gate`, observability and WORM audit `agent-observability`, the human-review console `human-review-console`),
 the FAQ points at it and explains the boundary rather than duplicating it. See
 [features-faq.md](features-faq.md) for the full "what this repo owns vs what it integrates" map.
 

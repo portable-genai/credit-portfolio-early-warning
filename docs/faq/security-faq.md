@@ -55,12 +55,11 @@ The model sees only the redacted projection, and its output is validated before 
 So a hallucinated figure changes nothing consequential. The remaining exposure is the input side:
 adverse-media headlines and snippets are written by third parties about the obligor and DO reach
 the model. Three things bound that today, and all three are load-bearing: the closed output enum,
-the `EXTERNAL` family cap, and the rule that an external signal can never floor a grade. The Hrz1
-guardrail gateway is **not** bound, so do not widen any of the three before it is.
+the `EXTERNAL` family cap, and the rule that an external signal can never floor a grade. The `agent-guardrail-gateway` is **not** bound, so do not widen any of the three before it is.
 
 ### How is the audit trail protected?
 
-Audit events go to `AuditSinkPort`, backed by Hrz5's immutable WORM sink in the managed profile
+Audit events go to `AuditSinkPort`, backed by `agent-observability`'s immutable WORM sink in the managed profile
 and a locked WORM log bucket in the Terraform stack. The retention lock is irreversible; confirm
 `retention_days` before the first apply. Each record reconstructs the decision without the source
 systems: the redacted assessment, the applied rules and the citations.
@@ -77,7 +76,7 @@ check.
 ### What is deliberately out of scope?
 
 - **Login.** This repo owns no authentication flow; auth is configured ON the deployed service.
-- **Guardrail screening.** Owned by Hrz1, not bound today.
+- **Guardrail screening.** Owned by `agent-guardrail-gateway`, not bound today.
 - **The grading system of record.** No write path exists here by design.
 - **Network egress for research.** The adverse-media feed is a port; egress isolation belongs to
   the adapter and the perimeter, not to this domain.

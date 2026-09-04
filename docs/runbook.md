@@ -1,4 +1,4 @@
-# Runbook: Credit Portfolio Early Warning (Doc7)
+# Runbook: Credit Portfolio Early Warning (`credit-portfolio-early-warning`)
 
 ## Deploy (gcp)
 1. `CREDITEWS_PROFILE=gcp`, install `.[gcp]`, region `asia-southeast1`.
@@ -174,9 +174,9 @@ in each case: a silent empty result is indistinguishable from a real one.
 
 | Variable | Adapter | What it reads | What it does when the variable is unset or emptied |
 |---|---|---|---|
-| `CREDITEWS_CREDIT_MEMO_URL` | `adapters/gcp/covenant_terms.py` | credit-memo-drafting's (Doc2) authenticated read API: the covenant terms extracted at origination, and their observations for a period | Raises `RuntimeError` naming the variable. It never returns an empty covenant set. |
+| `CREDITEWS_CREDIT_MEMO_URL` | `adapters/gcp/covenant_terms.py` | credit-memo-drafting's (`credit-memo-drafting`) authenticated read API: the covenant terms extracted at origination, and their observations for a period | Raises `RuntimeError` naming the variable. It never returns an empty covenant set. |
 | `CREDITEWS_METRICS_DATASET` | `adapters/gcp/portfolio_feed.py` | the BigQuery `obligor_metrics` and `obligor_servicing` views, parameterised queries only | Raises `RuntimeError` naming the variable. It never returns an empty window and never a null arrears snapshot. |
-| `CREDITEWS_KNOWLEDGE_BASE_URL` | `adapters/gcp/adverse_media.py` | the Hrz3 knowledge base's adverse-media collection for one obligor | Raises `RuntimeError` naming the variable. An unconfigured feed and an obligor with no coverage must not look the same. |
+| `CREDITEWS_KNOWLEDGE_BASE_URL` | `adapters/gcp/adverse_media.py` | the `agent-registry` knowledge base's adverse-media collection for one obligor | Raises `RuntimeError` naming the variable. An unconfigured feed and an obligor with no coverage must not look the same. |
 | `CREDITEWS_GRADE_REGISTRY_URL` | `adapters/gcp/grade_registry.py` | the grade of record, READ ONLY | Raises `RuntimeError` naming the variable. It never defaults a grade. |
 
 **The failure mode that matters most.** If the covenant adapter is ever changed to return an empty
@@ -246,7 +246,7 @@ service dutifully proposes an affirm every period. Nothing inside this repo can 
 alert on the AGE of `watchlist_since` rather than expecting a code change to catch it.
 
 ## Human review routing (rule R8)
-Set `HUMAN_REVIEW_URL` to the Hrz7 console (HTTPS is required off loopback) and provide
+Set `HUMAN_REVIEW_URL` to the `human-review-console` (HTTPS is required off loopback) and provide
 `HUMAN_REVIEW_S2S_TOKEN`; `HUMAN_REVIEW_S2S_SIGNING_KEY` optionally signs the propagated actor. These are the
 OUTBOUND credentials and are deliberately distinct from this service's own inbound
 `CREDITEWS_S2S_TOKEN`. With the URL unset, the managed router REFUSES rather
@@ -291,7 +291,7 @@ Operating rules:
 ## Agent surface
 The A2A discovery card is served at `/.well-known/agent-card.json` and is built from the same
 tool table the runtime binds, so it cannot advertise a skill the service does not implement.
-Register it with the Hrz3 registry (rule R4). The tools themselves need no agent runtime to run;
+Register it with the `agent-registry` (rule R4). The tools themselves need no agent runtime to run;
 only `build_function_tools()` imports one.
 
 ## Running the integration tests
