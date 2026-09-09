@@ -17,8 +17,11 @@
 # would read as an obligor with nothing wrong.
 #
 # The serving identity gets dataViewer and nothing more (iam.tf). This service proposes a grade
-# and never applies one, and it does not write here either: there is no ingestion path in this
-# repository, and the tables are populated by whatever already spreads the book.
+# and never applies one, and it does not write here either: in production the tables are
+# populated by whatever already spreads the book. For a DEMO deployment the rows come from
+# `scripts/load_demo_book.py`, which runs as an operator and never as the service, and which
+# fills tables rather than creating them -- a table missing here is a load that exits before
+# its first row.
 
 resource "google_bigquery_dataset" "obligor" {
   dataset_id = "obligor_metrics" # matches CREDITEWS_METRICS_DATASET
@@ -78,12 +81,46 @@ resource "google_bigquery_table" "obligor_servicing" {
     { name = "obligor_id", type = "STRING", mode = "REQUIRED" },
     { name = "tenant", type = "STRING", mode = "REQUIRED" },
     { name = "currency", type = "STRING", mode = "REQUIRED" },
-    # Minor units, integer: the materiality legs compare integers, and a float would make the
-    # absolute leg disagree with itself at the boundary.
-    { name = "drawn_amount", type = "INTEGER", mode = "REQUIRED" },
-    { name = "past_due_amount", type = "INTEGER", mode = "REQUIRED" },
+    # MAJOR units, exact decimal. The domain compares integers and never a currency float, and
+    # the conversion to minor units happens at the ADAPTER boundary on both sides
+    # (`credit_portfolio_ews.demo_book.minor`, imported by the managed adapter and the local
+    # store alike). These columns were declared INTEGER and described as minor units, while the
+    # adapter has always multiplied what it reads by a hundred; both could not be true. The
+    # adapter is what runs and its own test double answers a decimal major amount, so the schema
+    # was the half that was wrong -- and an INTEGER here cannot hold cents at all. Left as it
+    # was, the absolute leg of the arrears materiality gate would have run on figures a hundred
+    # times too large and classified obligors the laptop calls immaterial. NUMERIC rather than
+    # FLOAT64 because money in a float is a rounding argument.
+    { name = "drawn_amount", type = "NUMERIC", mode = "REQUIRED" },
+    { name = "past_due_amount", type = "NUMERIC", mode = "REQUIRED" },
     { name = "days_past_due", type = "INTEGER", mode = "REQUIRED" },
     { name = "as_of", type = "DATE", mode = "REQUIRED" },
     { name = "source_ref", type = "STRING", mode = "REQUIRED" },
+  ])
+}
+
+# The manifest the demo loader writes LAST, because it records the load that wrote the others.
+# It is deliberately not one of this repository's own tables: `hex_service_kit.demobook` keeps it
+# out of `TABLES` and appends it in `load_order()`, and the loader creates nothing, so a manifest
+# missing from here is a load that exits on a not-found before writing a single row. A sibling
+# repository shipped exactly that and three green gates could not see it, because the guard
+# iterated the repository's tables rather than the set the loader writes.
+#
+# `fictional` is what the overwrite guard reads. A demo loader truncates, which is right for a
+# demo book and catastrophic for a real one, so it proceeds only when every table is empty or
+# this row says what the dataset holds is fictional.
+resource "google_bigquery_table" "book_manifest" {
+  dataset_id          = google_bigquery_dataset.obligor.dataset_id
+  table_id            = "book_manifest"
+  project             = var.project_id
+  deletion_protection = true
+
+  schema = jsonencode([
+    { name = "book_version", type = "STRING", mode = "REQUIRED" },
+    { name = "as_of_date", type = "DATE", mode = "REQUIRED" },
+    { name = "fictional", type = "BOOL", mode = "REQUIRED" },
+    { name = "loaded_at", type = "TIMESTAMP", mode = "NULLABLE" },
+    { name = "source_commit", type = "STRING", mode = "NULLABLE" },
+    { name = "tenant", type = "STRING", mode = "REQUIRED" },
   ])
 }

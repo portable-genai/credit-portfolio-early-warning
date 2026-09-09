@@ -439,6 +439,11 @@ class Settings:
     #: that verifies perfectly. Empty means no anchor, which is right for the ephemeral
     #: ``:memory:`` store and wrong for anything durable.
     audit_anchor_path: str = ""
+    #: Where the offline profiles keep the DuckDB copy of the shipped obligor book.
+    #: ``:memory:`` is the ephemeral, deterministic default the gate runs on; a durable path
+    #: keeps whatever a demo registered between runs, and the store leaves a populated file
+    #: alone rather than re-seeding over it.
+    book_path: str = ":memory:"
     #: Base URL of the human-review-console Human-Review console the R8 producer path submits to.
     review_url: str = ""
     #: The audience the managed IAP identity adapter verifies the signed assertion AGAINST: the
@@ -552,6 +557,7 @@ class Settings:
             region=str(data.get("region") or _REGION),
             audit_path=str(data.get("audit_path") or ":memory:"),
             audit_anchor_path=str(data.get("audit_anchor_path") or ""),
+            book_path=str(data.get("book_path") or ":memory:"),
             review_url=str(data.get("review_url") or ""),
             iap_audience=str(data.get("iap_audience") or ""),
             tenant=str(data.get("tenant") or ""),

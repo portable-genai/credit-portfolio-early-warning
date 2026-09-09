@@ -194,6 +194,41 @@ posture is theirs. The two that are this project's, the BigQuery dataset and the
 collection, must be created IN the deployment region: a multi-region dataset moves a lending book
 out of jurisdiction and looks identical in the console.
 
+## Loading the demo book
+
+In production `obligor_metrics` and `obligor_servicing` are filled by whatever already spreads
+the book, and this service holds `dataViewer` and nothing more. A DEMO deployment has no such
+feed, so the shipped fictional book is loaded once by an operator:
+
+```bash
+# apply infra/terraform first: the loader fills tables and never creates them
+python scripts/load_demo_book.py --project "$PROJECT" --tenant "$HOSTED_DOMAIN"
+```
+
+Three things are worth knowing before running it.
+
+**`--tenant` is required and is never guessed.** On the deployment the tenant is whatever the IAP
+identity adapter resolves, usually the hosted domain. Rows stamped with anything else are
+invisible to every real user, because the tenant predicate in the WHERE clause is the
+authorisation and it is fail-closed. An invisible row reads exactly like an empty dataset, and an
+empty window presents a stressed obligor as a clean one.
+
+**The foreign obligor is deliberately not folded into that tenant.** `obl-omega-999` is loaded
+under `<tenant>-other`, so the cross-tenant refusal has an obligor to refuse. Without it the 403
+path is live code with no subject in the warehouse it polices.
+
+**It refuses to overwrite a book it did not write.** The loader truncates, which is right for a
+demo book and catastrophic for a real one, so it proceeds only when every target table is empty
+or the dataset's own `book_manifest` declares what it holds fictional. `--dry-run DIR` writes the
+NDJSON it would load and stops; it needs no credentials and no `[gcp]` extra.
+
+Verify afterwards with a managed read that names a figure rather than a heading:
+
+```bash
+CREDITEWS_PROFILE=gcp CREDITEWS_METRICS_DATASET="$PROJECT.obligor_metrics" \
+  credit_portfolio_ews assess --obligor obl-delta-004
+```
+
 ## Retuning the bank's policy
 
 Every number the engine compares against lives in the `policy:` block of `config/settings.yaml`

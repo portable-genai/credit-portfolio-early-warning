@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from ... import demo_book
 from ...domain.kernel import Citation
 from ...domain.models import (
     AdverseNewsItem,
@@ -41,20 +42,16 @@ OTHER_TENANT = "other-bank"
 #: The sweep date every fixture is written against. An explicit date, never a clock.
 AS_OF = date(2026, 6, 30)
 
-#: The covenant reporting period under test, and the two metric periods the window carries.
+#: The covenant reporting period under test. The metric periods the window carries are no
+#: longer declared here: they are whatever ``data/demo_book/obligor_metrics.ndjson`` ships,
+#: because that file is now the one place the window is written down, read identically by the
+#: DuckDB store the offline profiles serve and the BigQuery dataset the deployment reads.
 TEST_PERIOD = "FY2026H1"
 PERIOD_END = date(2026, 6, 30)
 CERTIFICATE_DUE = date(2026, 6, 15)
 CERTIFICATE_RECEIVED = date(2026, 6, 10)
-LATEST_PERIOD = "2026Q2"
-PRIOR_PERIOD = "2026Q1"
-LATEST_AS_OF = date(2026, 6, 30)
-PRIOR_AS_OF = date(2026, 3, 31)
 
 CURRENCY = "SGD"
-
-#: The declared unit that makes a change rule compare PROPORTIONALLY rather than absolutely.
-RATIO = "ratio"
 
 
 def _doc2_citation(facility_id: str, covenant_id: str) -> Citation:
@@ -123,70 +120,42 @@ def _observed(obligor_id: str, covenant_id: str, value: float) -> CovenantObserv
     )
 
 
-def _series(
-    obligor_id: str, metric: str, latest: float, prior: float, unit: str = ""
-) -> tuple[SignalObservation, SignalObservation]:
-    def one(value: float, period: str, as_of: date) -> SignalObservation:
-        return SignalObservation(
-            metric=metric,
-            value=value,
-            period=period,
-            as_of=as_of,
-            unit=unit,
-            source="spreading-system",
-            source_ref=f"spread:{obligor_id}:{metric}:{period}",
-            citations=(
-                Citation(
-                    source_id=f"spread:{obligor_id}:{metric}:{period}",
-                    title="Financial spread",
-                    snippet=f"{metric} for {period}",
-                ),
-            ),
-        )
+def _book_rows(table: str) -> dict[str, list[dict[str, object]]]:
+    """The shipped book's rows for one table, grouped by obligor.
 
-    return (one(latest, LATEST_PERIOD, LATEST_AS_OF), one(prior, PRIOR_PERIOD, PRIOR_AS_OF))
+    The metric windows and the arrears snapshots are NOT declared here any more. They live in
+    ``credit_portfolio_ews/data/demo_book/``, because the deployment reads them from BigQuery
+    and the offline profiles read them from DuckDB, and a third copy in Python is the thing
+    that made those two incomparable: a change to the demo moved what was narrated without
+    moving what the gate measured. This module still owns the covenants, the news and the
+    obligor records, which no warehouse table holds.
+    """
+    grouped: dict[str, list[dict[str, object]]] = {}
+    for row in demo_book.BOOK.rows(table):
+        grouped.setdefault(str(row["obligor_id"]), []).append(row)
+    return grouped
 
 
-def _window(
-    obligor_id: str,
-    *,
-    leverage: tuple[float, float] = (2.10, 2.20),
-    dscr: tuple[float, float] = (1.92, 1.85),
-    current_ratio: tuple[float, float] = (1.60, 1.55),
-    ebitda: tuple[float, float] = (4.20, 4.10),
-    utilisation: tuple[float, float] = (42.0, 40.0),
-    collections: tuple[float, float] = (31.0, 33.0),
-) -> tuple[SignalObservation, ...]:
-    """The six required metrics over two periods. Defaults are a quiet, healthy obligor."""
-    return (
-        *_series(obligor_id, "net_debt_to_ebitda", *leverage),
-        *_series(obligor_id, "dscr", *dscr),
-        *_series(obligor_id, "current_ratio", *current_ratio),
-        *_series(obligor_id, "ebitda", *ebitda, unit=RATIO),
-        *_series(obligor_id, "revolver_utilisation_pct", *utilisation),
-        *_series(obligor_id, "collections_concentration_pct", *collections),
+_METRIC_ROWS = _book_rows("obligor_metrics")
+_SERVICING_ROWS = _book_rows("obligor_servicing")
+
+
+def _window(obligor_id: str) -> tuple[SignalObservation, ...]:
+    """This obligor's metric window from the book, newest first, as the engine reads it."""
+    rows = sorted(
+        _METRIC_ROWS.get(obligor_id, ()),
+        key=lambda row: (str(row["as_of"]), str(row["period"]), str(row["source_ref"])),
+        reverse=True,
     )
+    return tuple(demo_book.to_observation(row) for row in rows)
 
 
-def _arrears(
-    obligor_id: str, *, days: int, past_due_minor: int, drawn_minor: int
-) -> ArrearsSnapshot:
-    return ArrearsSnapshot(
-        obligor_id=obligor_id,
-        as_of=AS_OF,
-        currency=CURRENCY,
-        drawn_amount_minor=drawn_minor,
-        past_due_amount_minor=past_due_minor,
-        days_past_due=days,
-        source_ref=f"servicing:{obligor_id}:{AS_OF}",
-        citations=(
-            Citation(
-                source_id=f"servicing:{obligor_id}:{AS_OF}",
-                title="Servicing arrears snapshot",
-                snippet="drawn and past-due balances from the same snapshot",
-            ),
-        ),
+def _arrears(obligor_id: str) -> ArrearsSnapshot | None:
+    """This obligor's servicing snapshot from the book, or ``None`` when it has none."""
+    rows = sorted(
+        _SERVICING_ROWS.get(obligor_id, ()), key=lambda row: str(row["as_of"]), reverse=True
     )
+    return demo_book.to_arrears(rows[0], obligor_id) if rows else None
 
 
 def _news(
@@ -301,7 +270,7 @@ def _alpha() -> ObligorFixture:
             _observed(obligor_id, "cov-alpha-lev", 2.10),
             _observed(obligor_id, "cov-alpha-dscr", 1.92),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=780_000_000),
+        arrears=_arrears(obligor_id),
         observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
@@ -346,8 +315,8 @@ def _beta() -> ObligorFixture:
             _observed(obligor_id, "cov-beta-lev", 3.62),
             _observed(obligor_id, "cov-beta-dscr", 1.48),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=980_000_000),
-        observations=_window(obligor_id, leverage=(3.62, 3.40), dscr=(1.48, 1.55)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -393,8 +362,8 @@ def _gamma() -> ObligorFixture:
             _observed(obligor_id, "cov-gamma-lev", 3.70),
             _observed(obligor_id, "cov-gamma-tnw", 2.40),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=520_000_000),
-        observations=_window(obligor_id, leverage=(3.70, 3.55)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(
             _news(
                 obligor_id,
@@ -448,18 +417,8 @@ def _delta() -> ObligorFixture:
             _observed(obligor_id, "cov-delta-dscr", 1.18),
             _observed(obligor_id, "cov-delta-lev", 3.42),
         ),
-        arrears=_arrears(
-            obligor_id, days=96, past_due_minor=124_000_000, drawn_minor=3_850_000_000
-        ),
-        observations=_window(
-            obligor_id,
-            leverage=(3.42, 3.30),
-            dscr=(1.18, 1.30),
-            current_ratio=(1.22, 1.30),
-            ebitda=(3.30, 5.00),
-            utilisation=(88.0, 79.0),
-            collections=(31.0, 33.0),
-        ),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(
             _news(
                 obligor_id,
@@ -512,10 +471,8 @@ def _epsilon() -> ObligorFixture:
             _observed(obligor_id, "cov-epsilon-lev", 2.05),
             _observed(obligor_id, "cov-epsilon-dscr", 1.71),
         ),
-        arrears=_arrears(obligor_id, days=96, past_due_minor=9_640_000, drawn_minor=310_000_000),
-        observations=_window(
-            obligor_id, leverage=(2.05, 2.15), dscr=(1.71, 1.68), utilisation=(45.0, 44.0)
-        ),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -559,8 +516,8 @@ def _zeta() -> ObligorFixture:
             _observed(obligor_id, "cov-zeta-lev", 2.30),
             _observed(obligor_id, "cov-zeta-dscr", 1.80),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=700_000_000),
-        observations=_window(obligor_id, leverage=(2.30, 2.35), dscr=(1.80, 1.78)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -604,8 +561,8 @@ def _eta() -> ObligorFixture:
             _observed(obligor_id, "cov-eta-lev", 2.15),
             _observed(obligor_id, "cov-eta-dscr", 1.86),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=410_000_000),
-        observations=_window(obligor_id, leverage=(2.15, 2.25), dscr=(1.86, 1.80)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -649,11 +606,8 @@ def _theta() -> ObligorFixture:
             ),
         ),
         covenant_observations=(),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=1_100_000_000),
-        observations=(
-            *_series(obligor_id, "revolver_utilisation_pct", 55.0, 54.0),
-            *_series(obligor_id, "collections_concentration_pct", 31.0, 32.0),
-        ),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -697,8 +651,8 @@ def _iota() -> ObligorFixture:
             _observed(obligor_id, "cov-iota-lev", 1.95),
             _observed(obligor_id, "cov-iota-dscr", 2.05),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=190_000_000),
-        observations=_window(obligor_id, leverage=(1.95, 2.00), dscr=(2.05, 2.02)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(
             _news(
                 obligor_id,
@@ -751,8 +705,8 @@ def _kappa() -> ObligorFixture:
             _observed(obligor_id, "cov-kappa-lev", 2.40),
             _observed(obligor_id, "cov-kappa-dscr", 1.70),
         ),
-        arrears=_arrears(obligor_id, days=41, past_due_minor=64_000, drawn_minor=148_000_000),
-        observations=_window(obligor_id, leverage=(2.40, 2.45), dscr=(1.70, 1.72)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier=planted,
     )
@@ -796,8 +750,8 @@ def _lambda() -> ObligorFixture:
             _observed(obligor_id, "cov-lambda-lev", 2.25),
             _observed(obligor_id, "cov-lambda-dscr", 1.66),
         ),
-        arrears=_arrears(obligor_id, days=0, past_due_minor=0, drawn_minor=600_000_000),
-        observations=_window(obligor_id, leverage=(2.25, 2.30), dscr=(1.66, 1.64)),
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(
             # Uncategorised on arrival, exactly as a live feed delivers them, so the offline
             # profile exercises the same two-stage path (feed confirms, model categorises) the
@@ -842,8 +796,12 @@ def _omega() -> ObligorFixture:
         ),
         terms=(),
         covenant_observations=(),
-        arrears=None,
-        observations=(),
+        # From the book, like everyone else. It used to hold nothing, which meant the
+        # cross-tenant refusal had no row to find on the warehouse: the managed adapter asks
+        # which tenant owns an id, and with one tenant in the book that question had no answer
+        # and the 403 path was dead on the only surface it has never been exercised on.
+        arrears=_arrears(obligor_id),
+        observations=_window(obligor_id),
         news=(),
         planted_identifier="",
     )
