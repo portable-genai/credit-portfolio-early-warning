@@ -59,7 +59,23 @@ test-integration:
 	pytest -m integration
 
 eval:
+	# The synthetic calibration sample is RENDERED from a recorded generative model, so an edit
+	# to that model which was never re-rendered fails here rather than leaving the harness
+	# scoring against an assumption nobody wrote down.
+	python scripts/render_calibration_sample.py --check
 	python eval/run_eval.py
+	python scripts/render_evals_doc.py --check
+
+# The model-risk harness. Under SR 11-7 the scoring engine is a model, and this is the part of
+# what it owes that can be landed without a historical sample: discrimination against a stated
+# assumption, and monitoring that escalates on absence. `--gate` enforces what can be measured
+# and holds the outstanding controls against docs/model-card.md; run it bare for the full,
+# deliberately failing verdict a person or a scheduled run should see.
+model-risk:
+	python eval/run_model_risk.py --gate
+
+model-risk-full: ## The unvarnished verdict. Non-zero while outcome monitoring has no data.
+	python eval/run_model_risk.py
 
 # Render the Agent Plugins 1.0.0 directory from what this repo already declares. Skills and an
 # MCP server are both detected rather than assumed, so this works from generation onward: a
@@ -71,7 +87,7 @@ plugin:
 # no-egress environment; the dependency audit needs a vulnerability feed and therefore lives in
 # `make audit` locally and in the hard-gate workflow's supply-chain job, where it is a HARD
 # failure, not an advisory one.
-gate: lint test eval plugin
+gate: lint test eval model-risk plugin
 
 # The supply-chain half of the gate (needs network). CI runs the same two commands.
 audit:

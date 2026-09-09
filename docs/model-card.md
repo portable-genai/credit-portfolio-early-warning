@@ -23,13 +23,13 @@ What is missing, stated plainly so nobody has to discover it:
 
 | Control | Status |
 |---|---|
-| Conceptual soundness write-up | **Absent.** No document argues why these signals, these weights and these band edges should predict deterioration. |
+| Conceptual soundness write-up | **Present.** `docs/conceptual-soundness.md` argues why each family leads deterioration, why the weights carry the relative order they do, why the band edges sit where they do, and names five things that would falsify the argument. It is reasoning, not evidence, and says so in its second paragraph. |
 | Development evidence | **Absent.** The weights, family caps and band edges in `EarlyWarningPolicy` are REFERENCE defaults chosen to be legible in a demo. They were not fitted, tuned or selected against outcomes. |
 | Backtest | **Absent.** Nothing in this repo measures whether a flagged obligor subsequently deteriorated, or whether an unflagged one did not. There is no historical sample here to measure against. |
-| Discriminatory power | **Unmeasured.** No AUC, no Gini, no rank-order statistic. `composite_score` has never been shown to separate deteriorating obligors from stable ones. |
-| Outcome monitoring | **Absent.** No plan and no mechanism for tracking realised outcomes against proposals. |
+| Discriminatory power | **Unmeasured on real outcomes.** `eval/run_model_risk.py` scores AUC 0.975 against a SYNTHETIC sample whose labels come from a stated generative model, not from realised outcomes. That measures whether the family caps and band structure are internally coherent under a written assumption a validator can disagree with. It measures nothing about the world, and it does not validate the weights: reversing every weight still scores 0.923 on that sample. |
+| Outcome monitoring | **Mechanism only, no data.** `eval/run_model_risk.py` scores `outcome_coverage` against `monitoring/realised_outcomes.ndjson`, which does not exist. It reports 0.000 against a bar of 0.70 and escalates: an absent measurement fails rather than reading as calm. There is still no historical sample and no feed. |
 | Independent validation | **Absent.** Not reviewed by a validation function. `model-risk-validation` (the data-residency validator) is the sibling that owns this and has not seen it. |
-| Override and challenge log | **Absent.** Nothing records where a credit officer disagreed with a proposal, which is the cheapest early evidence a scorecard is mis-calibrated. |
+| Override and challenge log | **Mechanism only, no data.** `docs/override-log.md` defines the schema, the pseudonymised obligor reference, the closed reason-code set and the trigger levels. `monitoring/override_log.ndjson` holds no entries because no proposal has been reviewed, and `override_coverage` scores 0.000 against 1.0 for exactly that reason. |
 
 ### What `composite_score` is, and is not
 

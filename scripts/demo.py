@@ -34,12 +34,13 @@ push it past the formatter's limit.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sqlite3
 import sys
 import tempfile
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -280,9 +281,39 @@ STEPS: tuple[Step, ...] = (
             "exists."
         ),
     ),
+    Step(
+        key="evals",
+        label="Every metric on this slide, shown failing, and the two that fail on purpose",
+        narration=(
+            "Six good answers is the easy half. Here is how anyone would know when this is "
+            "wrong. Two harnesses, and keeping them apart is the point. The regression gate "
+            "scores a pure function at one point zero, and every one of its metrics is broken "
+            "on purpose in front of you, because a metric nobody has seen fail is a claim. But "
+            "read what that gate proves: the arithmetic did not move. Nothing about whether the "
+            "scorecard predicts anything. The scoring engine is a model under SR 11-7, and a "
+            "regression gate is not the evidence a model owes. So the second harness measures "
+            "structure against a written assumption, and it measures whether anyone is watching "
+            "this model at all. Two of its four metrics score zero and fail. That is not broken. "
+            "There are no realised outcomes here and no override entries, and a model nobody is "
+            "watching looks exactly like a model with a silent monitor. This one says so."
+        ),
+    ),
 )
 
 STEP_KEYS: tuple[str, ...] = tuple(step.key for step in STEPS)
+
+#: The limits of the whole evaluation surface, named in the demo rather than left to be
+#: assumed away. Every one of these is recorded in docs/model-card.md as well.
+UNMEASURED: tuple[str, ...] = (
+    "predictive validity. No historical sample, no backtest, no rank-order statistic on real "
+    "outcomes.",
+    "the weights. Reversing every weight still scores 0.923 on the synthetic sample, so the "
+    "discrimination number validates the family caps and the band structure, not the weights.",
+    "the top band. No obligor in the sample reaches a composite of 90, so DOUBTFUL is empty and "
+    "the monotonicity check says nothing about that edge.",
+    "development evidence and independent validation. Both Absent, unchanged.",
+    "whether the narration is any good. It either produced a memo or discarded the draft.",
+)
 
 
 # --------------------------------------------------------------------------------------- #
@@ -908,6 +939,98 @@ class DemoRun:
             ),
         )
         return [exit_panel, bounds], {"refused": sorted(refused), "absent": sorted(absent)}
+
+    def _step_evals(self) -> Produced:
+        """Run the SHIPPED scorers live, break each one, and name what is not measured.
+
+        Imported here rather than at module scope: `eval/` is a script directory, not a package
+        this demo depends on, and the import is the act.
+        """
+        import sys as _sys
+
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "eval"))
+        import run_eval  # noqa: PLC0415
+        import run_model_risk  # noqa: PLC0415
+
+        thresholds = run_eval.load_thresholds_from_rubrics()
+        report = run_eval.run_smoke(run_eval.DEFAULT_DATASET, thresholds)
+        regression_rows = [
+            Row(
+                result.metric,
+                f"{result.score:.3f} against {result.threshold:.2f}",
+                "ok" if result.passed else "bad",
+            )
+            for result in report.results
+        ]
+        regression = Panel(
+            title="Regression gate, live",
+            rows=tuple(regression_rows),
+            note=(
+                f"{report.n_examples} golden cases, dataset {report.dataset_digest[:12]}. Every "
+                "bar is 1.00 because these score a pure function: anything below is a defect, "
+                "not drift. They say nothing about predictive validity."
+            ),
+            tone="ok" if all(result.passed for result in report.results) else "bad",
+        )
+
+        cases = run_eval._load(run_eval.DEFAULT_DATASET)
+        proven: list[Row] = []
+        for proof in run_eval._red_case_proofs(cases, thresholds):
+            proof()  # raises if the degraded case still scores at or above the bar
+            proven.append(Row(proof.__name__, "goes RED on its own planted defect", "ok"))
+        falsification = Panel(
+            title="Every one of them, broken on purpose",
+            rows=tuple(proven),
+            note=(
+                "These run as the FIRST statement of the scored run, not only under tests. A "
+                "metric that became tautological in a refactor is caught here and nowhere else."
+            ),
+            tone="ok",
+        )
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            run_model_risk.main(["--report-only"])
+        printed = buffer.getvalue()
+        model_rows: list[Row] = []
+        for line in printed.splitlines():
+            parts = line.split()
+            if len(parts) > 3 and parts[0] in run_model_risk.SCORED:
+                outstanding = parts[0] in run_model_risk.MONITORING
+                model_rows.append(
+                    Row(
+                        parts[0],
+                        f"{parts[1]} against {parts[2]}"
+                        + (" (no control exists)" if outstanding and parts[3] == "FAIL" else ""),
+                        "bad" if parts[3] == "FAIL" else "ok",
+                    )
+                )
+        model_risk = Panel(
+            title="Model risk: the engine is a model, and this is what it owes",
+            rows=tuple(model_rows),
+            note=(
+                "Discrimination is measured against a SYNTHETIC sample whose labels come from a "
+                "written assumption, not from outcomes: it is not a backtest and cannot become "
+                "one here. The two zeros are controls that do not exist yet, reported as a "
+                "failure rather than as silence."
+            ),
+            tone="bad",
+        )
+
+        unmeasured = Panel(
+            title="What none of this measures",
+            rows=tuple(Row("NOT measured", claim) for claim in UNMEASURED),
+            note=(
+                "Said out loud, because a room shown a table of green numbers assumes this list "
+                "is empty. docs/model-card.md is the control inventory and it is still honest."
+            ),
+        )
+        return [regression, falsification, model_risk, unmeasured], {
+            "regression_metrics": [result.metric for result in report.results],
+            "falsified": [row.label for row in proven],
+            "model_risk_metrics": [row.label for row in model_rows],
+            "outstanding": sorted(row.label for row in model_rows if row.tone == "bad"),
+        }
 
     # -------------------------------------------------------------- helpers
 

@@ -56,7 +56,7 @@ def test_the_shipped_pii_safety_oracle_can_go_red_over_real_audit_records() -> N
         _pii_safety,
         green=PII_PATTERNS,  # redaction on: every planted identifier is masked
         red=(),  # redaction off (the mutant): the raw identifiers survive
-        threshold=run_eval.THRESHOLDS["pii_safety"],
+        threshold=run_eval.load_thresholds_from_rubrics()["pii_safety"],
         metric="pii_safety",
     )
 
@@ -77,3 +77,58 @@ def test_the_oracle_reads_more_of_the_record_than_the_field_it_used_to_read() ->
     assert "desk@lambda-chem.example" in scanned, "a citation snippet is not being scanned"
     assert "analyst@bank.example" not in scanned
     assert run_eval.ATTRIBUTION_FIELDS == ("actor",)
+
+
+def test_the_gate_runs_a_proof_for_every_metric_it_scores() -> None:
+    """The direction that rots: a metric added to SCORED with no red case behind it.
+
+    Nothing else notices. The gate prints the new metric, it scores 1.000 because whatever it
+    measures happens to hold, and the run that would have caught it going wrong was never
+    written. Each proof is named after its metric, which is what makes this checkable.
+    """
+    thresholds = run_eval.load_thresholds_from_rubrics()
+    cases = run_eval._load(run_eval.DEFAULT_DATASET)
+    proven = {proof.__name__ for proof in run_eval._red_case_proofs(cases, thresholds)}
+    assert proven == set(run_eval.SCORED), (
+        "the scored metrics and the falsification proofs are not the same set: "
+        f"scored with no proof {sorted(set(run_eval.SCORED) - proven)}, "
+        f"proved but not scored {sorted(proven - set(run_eval.SCORED))}"
+    )
+
+
+def test_every_scored_metric_has_a_reviewed_bar_and_every_bar_is_scored() -> None:
+    """Both directions, per family. The second is the one nobody writes by hand."""
+    import pytest
+    from agent_eval_kit import load_rubrics
+    from agent_eval_kit.rubrics import RubricError
+
+    regression = load_rubrics(run_eval.RUBRICS).group("")
+    regression.assert_covers(run_eval.SCORED)
+    with pytest.raises(RubricError, match="reads as governance"):
+        regression.assert_covers(run_eval.SCORED[:-1])
+
+
+def test_the_model_risk_family_is_separate_and_also_covered_both_ways() -> None:
+    """The regression bars and the model-risk bars are different kinds of evidence.
+
+    Folding them into one set would make each look like an orphan bar to the other, and would
+    let a reader take a 1.00 regression bar as though it said something about predictive
+    validity. The split is asserted here so a later tidy-up cannot quietly merge them.
+    """
+    import sys
+
+    import pytest
+    from agent_eval_kit import load_rubrics
+    from agent_eval_kit.rubrics import RubricError
+
+    sys.path.insert(0, str(run_eval._REPO_ROOT / "eval"))
+    import run_model_risk
+
+    model_risk = load_rubrics(run_eval.RUBRICS).group("model-risk")
+    model_risk.assert_covers(run_model_risk.SCORED)
+    with pytest.raises(RubricError, match="reads as governance"):
+        model_risk.assert_covers(run_model_risk.SCORED[:-1])
+    assert not set(run_eval.SCORED) & set(run_model_risk.SCORED), (
+        "a metric name is scored by both harnesses; the two mean different things and sharing "
+        "a name would let one family's bar be read as the other's evidence"
+    )

@@ -1,0 +1,83 @@
+# Model-risk rubric for the SCORING ENGINE, which is a model under SR 11-7 and PRA SS1/23.
+#
+# Read this beside `eval/rubrics/regression.yaml`, and do not confuse the two. Those bars are
+# all 1.00 because they score a pure function against hand-written expectations: the arithmetic
+# either reproduces itself or it moved under a grade somebody already acted on. That is a
+# regression bar and it is evidence of nothing about predictive validity.
+#
+# These bars are different in kind. `rank_discrimination` and `band_monotonicity` are measured
+# against a SYNTHETIC sample whose labels come from a stated generative model, not from realised
+# outcomes, so they measure whether the scorecard's structure is coherent under an assumption a
+# validator can read and disagree with. They are not a backtest, and nothing derived from them
+# may be reported as one. `outcome_coverage` and `override_coverage` measure whether the two
+# controls that WOULD produce real evidence exist at all, and both currently score zero.
+#
+# `group: model-risk` keeps this set separate from the regression bars, so a metric name that
+# appears in both families keeps its own reviewed bar.
+metric: rank_discrimination
+threshold: 0.80
+description: >-
+  AUC of the composite score against the synthetic latent deterioration label, ties counted at
+  0.5. Measured over 240 synthetic obligors, 60 of them labelled deteriorating.
+denominator: >-
+  60 labelled positives. AUC is not a fraction of scored decisions and the one-miss rule does
+  not apply to it in the usual way; what the count buys is interval width, and 60 positives
+  against 180 negatives puts the standard error at roughly 0.04. The bar is 0.80 rather than
+  something tighter for that reason: a bar inside the noise of its own sample is not a bar.
+  The scorecard scores well above it on the shipped sample, and the headroom is deliberate,
+  because this measures a hypothesis rather than the world.
+rationale: >-
+  0.80 is a FLOOR on structural coherence, not a target and not a claim of fitness for use. It
+  was chosen by measuring what it catches, and the measurements are the honest part. On the
+  shipped sample the scorecard scores 0.975. Inverting the family caps so adverse media and
+  process findings dominate, which is the exact failure the caps exist to prevent, drops it to
+  0.743 and fails: that is the red case the harness runs before scoring. Flattening every rule
+  weight to 1 scores 0.951, and REVERSING the weight order scores 0.923, so both pass.
+  
+
+  That is the limit, stated rather than left to be discovered: on this sample the ranking is
+  driven by WHICH signals fire, not by how heavily they are weighted, so this metric does not
+  validate the weights and must never be cited as though it did. Only a historical sample can
+  do that. What clearing 0.80 does establish is that the family caps and the band structure
+  are consistent with the argument in docs/conceptual-soundness.md, and that a retune has not
+  made the scorecard incoherent.
+companion_metrics:
+  band_monotonicity:
+    threshold: 1.0
+    description: >-
+      Share of adjacent watch-grade bands whose observed deterioration rate does not fall as
+      the grade worsens. Bands holding fewer than 8 obligors are reported and not scored.
+    rationale: >-
+      1.0 because a band edge that puts a lower deterioration rate in a worse grade is not a
+      degraded scorecard, it is an incoherent one, and a reader acts on the band and not on the
+      composite. AUC cannot see this: it never looks at where the cuts are. Only two bands
+      carry enough obligors to score on the shipped sample, so the denominator is a single
+      adjacent pair and no bar below 1.0 could mean anything over it.
+      
+
+      The DOUBTFUL band is empty on this sample: nothing in it reaches a composite of 90, so
+      the top band edge is unexercised and this metric says nothing about it. Recorded here
+      because an unexercised edge in a monotonicity check reads exactly like a sound one.
+  outcome_coverage:
+    threshold: 0.70
+    description: >-
+      Share of recorded proposals carrying a realised outcome. Currently 0.000: there is no
+      outcomes feed in this repository and no historical sample.
+    rationale: >-
+      Set at 0.70 and FAILING on purpose, which is the whole design. A monitoring metric with
+      no data behind it must escalate rather than report nothing, because a model nobody is
+      watching and a model with a silent monitor look identical from outside. 0.70 is the
+      coverage below which a validation function would not accept the monitoring as evidence:
+      an outcome feed that reaches half the book tells you about the half it reaches.
+  override_coverage:
+    threshold: 1.0
+    description: >-
+      Whether the override and challenge log exists and holds entries, as a 0/1. Currently
+      0.000: the log exists as a schema and a document, and no proposal has been reviewed.
+    rationale: >-
+      Scored as a mechanism rather than as a rate, and at 1.0, because there is no acceptable
+      level of "no log". A low override rate is a finding a validator interprets; an absent log
+      is a control that does not exist and cannot produce the cheapest early evidence that a
+      scorecard is mis-calibrated. The trigger levels that apply once entries exist are in
+      docs/override-log.md and are deliberately not thresholds here: they govern a human
+      escalation, not a build.
