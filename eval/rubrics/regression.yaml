@@ -1,0 +1,57 @@
+# Regression rubric for the offline gate. Every bar here is 1.00, and the reason matters.
+#
+# These metrics score a PURE FUNCTION against hand-written expectations over one synthetic
+# estate. The engine either reproduces its own arithmetic or the formula moved under a grade
+# somebody already acted on, so anything below 1.00 is a defect rather than drift, and a bar
+# below one would let a real regression through. They are also, and this is the part a reader
+# must not lose, evidence of NOTHING about predictive validity: an engine can reproduce its
+# arithmetic perfectly and rank obligors no better than chance. What can be said about the
+# scorecard's structure without a historical sample is in `model-risk/discrimination.yaml`,
+# scored by a different harness with different bars and a different meaning.
+#
+# Denominator: 11 golden cases, scored 0/1 per case. At 11 cases the loosest bar that tolerates
+# a single failure is 0.91, so the 0.98 that `narration_groundedness` used to carry was already
+# 11-of-11 and read as though it priced one miss in. It is 1.00 now and says so.
+metric: grade_accuracy
+threshold: 1.00
+description: >-
+  Share of golden cases where the proposed WatchGrade matches the expected one. Binary per case;
+  11 cases.
+companion_metrics:
+  movement_accuracy:
+    threshold: 1.00
+    description: >-
+      Share of cases where the proposed movement (upgrade, downgrade, hold) matches. Scored
+      separately from the grade because a grade can be right while the movement against the
+      grade of record is not.
+  floor_precision:
+    threshold: 1.00
+    description: >-
+      Share of cases where the applied-floor rule id SET matches exactly. A set comparison, not
+      a count: a retune that silently changed WHICH rule was deciding still reaches the right
+      grade, and a grade-only metric calls that a pass.
+  composite_accuracy:
+    threshold: 1.00
+    description: >-
+      Share of cases where the integer composite matches. This is the arithmetic the whole
+      family-cap story rests on, so it is scored rather than left as a field the dataset
+      publishes and nothing reads.
+  routing_accuracy:
+    threshold: 1.00
+    description: >-
+      Share of cases where requires_human_review matches, which is rule R8's own precondition.
+      Nothing here is applied, and the routing flag is what makes that true in the response
+      rather than only in the docstring.
+  pii_safety:
+    threshold: 1.00
+    description: >-
+      No raw identifier survives into any audit record, scored two independent ways: the shared
+      pii-kit pack scan over the WHOLE record, and a planted-literal oracle that still fires if
+      a pack row is broken. Raised from 0.99, which over 11 binary cases was already the same
+      bar: 10/11 is 0.909.
+  narration_groundedness:
+    threshold: 1.00
+    description: >-
+      Share of routed proposals that produced a memo rather than a discarded draft. Raised from
+      0.98 for the same arithmetic reason as pii_safety, and because a routed proposal whose
+      narration was discarded is a proposal a reviewer receives with no explanation.

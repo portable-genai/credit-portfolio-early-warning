@@ -250,6 +250,63 @@ def _check_portability(state: dict[str, Any]) -> list[str]:
     return problems
 
 
+def _check_evals(state: dict[str, Any]) -> list[str]:
+    """No metric may reach that slide without being shown to fail, and the limits must be said.
+
+    This is the check the eval act exists for. A table of green numbers in front of a credit
+    committee is read as assurance, and the one thing that separates assurance from decoration
+    is whether anyone has seen the numbers move. A metric added to the gate since the last
+    rehearsal, with no red case behind it, looks identical to one that has been falsified a
+    hundred times.
+    """
+    facts = _facts(state)
+    scored = sorted(facts.get("regression_metrics", []))
+    falsified = sorted(facts.get("falsified", []))
+    model_risk = sorted(facts.get("model_risk_metrics", []))
+    outstanding = sorted(facts.get("outstanding", []))
+    problems: list[str] = []
+    if not scored:
+        problems.append("the eval act put no regression metric on the slide at all")
+    if scored != falsified:
+        problems.append(
+            "shown green without being shown red: "
+            + str(sorted(set(scored) - set(falsified)))
+            + "; every metric on that slide has to be demonstrated failing"
+        )
+    if sorted(model_risk) != sorted(demo_model_risk_metrics()):
+        problems.append("the model-risk harness did not report its full metric set")
+    # The two monitoring metrics MUST be outstanding here. If one silently starts passing, a
+    # feed was connected and nobody updated the model card, which is the drift the harness's
+    # own --gate mode fails on. Asserting it here too means the DEMO cannot show a model as
+    # monitored while the card still records the control as Absent.
+    if outstanding != sorted(demo_monitoring_metrics()):
+        problems.append(
+            "the outstanding monitoring metrics are not the two recorded as Absent in "
+            f"docs/model-card.md: {outstanding}"
+        )
+    return problems
+
+
+def demo_model_risk_metrics() -> tuple[str, ...]:
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _sys.path.insert(0, str(_Path(demo.__file__).resolve().parent.parent / "eval"))
+    import run_model_risk
+
+    return run_model_risk.SCORED
+
+
+def demo_monitoring_metrics() -> tuple[str, ...]:
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _sys.path.insert(0, str(_Path(demo.__file__).resolve().parent.parent / "eval"))
+    import run_model_risk
+
+    return run_model_risk.MONITORING
+
+
 #: One entry per step key, in the demo's order. A step added to ``demo.STEPS`` without a check
 #: here fails the walkthrough immediately, so the arc and its assertions cannot drift.
 CHECKS: dict[str, Check] = {
@@ -261,6 +318,7 @@ CHECKS: dict[str, Check] = {
     "audit": _check_audit,
     "tamper": _check_tamper,
     "portability": _check_portability,
+    "evals": _check_evals,
 }
 
 

@@ -30,7 +30,16 @@ import json
 from pathlib import Path
 from typing import Any
 
-from agent_eval_kit import EvalMetricResult, EvalReport, eval_main
+from agent_eval_kit import (
+    EvalMetricResult,
+    EvalReport,
+    assert_can_go_red,
+    assert_denominator_supports,
+    dataset_digest,
+    eval_main,
+    load_rubrics,
+    prove_before_scoring,
+)
 from pii_kit import pack_leak
 
 from credit_portfolio_ews.adapters.local import (
@@ -48,15 +57,35 @@ from credit_portfolio_ews.domain.pii import (
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATASET = _REPO_ROOT / "eval" / "datasets" / "golden_cases.jsonl"
 
-THRESHOLDS: dict[str, float] = {
-    "grade_accuracy": 1.00,
-    "movement_accuracy": 1.00,
-    "floor_precision": 1.00,
-    "composite_accuracy": 1.00,
-    "routing_accuracy": 1.00,
-    "pii_safety": 0.99,
-    "narration_groundedness": 0.98,
-}
+RUBRICS = _REPO_ROOT / "eval" / "rubrics"
+
+#: Named on the report and stamped on every EvalReport, so a stored result says what produced
+#: it rather than leaving a reader to assume the production evaluator did.
+_EVALUATOR = "offline regression gate (deterministic engine, no GCP creds)"
+
+#: The metrics this runner scores, in report order. There is no THRESHOLDS dict any more: every
+#: bar lives in `eval/rubrics/regression.yaml` beside the argument for it, and `assert_covers`
+#: holds this tuple and that file equal in BOTH directions before anything is scored.
+SCORED: tuple[str, ...] = (
+    "grade_accuracy",
+    "movement_accuracy",
+    "floor_precision",
+    "composite_accuracy",
+    "routing_accuracy",
+    "pii_safety",
+    "narration_groundedness",
+)
+
+
+def load_thresholds_from_rubrics() -> dict[str, float]:
+    """Read every regression bar out of ``eval/rubrics/``. No fallback, by design.
+
+    The `model-risk` group is excluded here and read by `eval/run_model_risk.py` instead. The
+    two families measure different things against different kinds of evidence, and folding them
+    into one set would make each look like an orphan bar to the other.
+    """
+    return load_rubrics(RUBRICS).group("").thresholds()
+
 
 #: The identity the eval attributes work to. It names a bot, never a person.
 ACTOR = "eval-bot@bank.example"
@@ -92,8 +121,15 @@ def _mean(scores: list[float]) -> float:
     return round(sum(scores) / len(scores), 4) if scores else 0.0
 
 
-def run_smoke(dataset: Path) -> EvalReport:
+def run_smoke(dataset: Path, thresholds: dict[str, float] | None = None) -> EvalReport:
+    # The rubrics and the scored set must agree in BOTH directions before anything is scored.
+    thresholds = thresholds or load_thresholds_from_rubrics()
+    load_rubrics(RUBRICS).group("").assert_covers(SCORED)
     cases = _load(dataset)
+    # Falsification first, as the opening statement of the scored run and not only under
+    # tests/: a metric that cannot go red is not evidence, and a suite that proved it ten
+    # minutes ago proved it about a process nobody shipped.
+    prove_before_scoring(*_red_case_proofs(cases, thresholds))
     settings = Settings(profile="local", audit_path=":memory:", tenant=_fixtures.TENANT)
     container = build_container(settings)
     service = build_review_service(container)
@@ -146,26 +182,126 @@ def run_smoke(dataset: Path) -> EvalReport:
     literal_leaked = any(token in text for token in planted for text in records)
     pii_safety = 0.0 if (pack_leaked or literal_leaked) else 1.0
 
-    results = (
-        EvalMetricResult.scored("grade_accuracy", _mean(grades), THRESHOLDS["grade_accuracy"]),
-        EvalMetricResult.scored(
-            "movement_accuracy", _mean(movements), THRESHOLDS["movement_accuracy"]
-        ),
-        EvalMetricResult.scored("floor_precision", _mean(floors), THRESHOLDS["floor_precision"]),
-        EvalMetricResult.scored(
-            "composite_accuracy", _mean(composites), THRESHOLDS["composite_accuracy"]
-        ),
-        EvalMetricResult.scored(
-            "routing_accuracy", _mean(routings), THRESHOLDS["routing_accuracy"]
-        ),
-        EvalMetricResult.scored("pii_safety", pii_safety, THRESHOLDS["pii_safety"]),
-        EvalMetricResult.scored(
-            "narration_groundedness",
-            _mean(grounded),
-            THRESHOLDS["narration_groundedness"],
-        ),
+    scores = {
+        "grade_accuracy": _mean(grades),
+        "movement_accuracy": _mean(movements),
+        "floor_precision": _mean(floors),
+        "composite_accuracy": _mean(composites),
+        "routing_accuracy": _mean(routings),
+        "pii_safety": pii_safety,
+        "narration_groundedness": _mean(grounded),
+    }
+    # Every bar against the denominator that actually reached it. `narration_groundedness` is
+    # the one to watch: it is scored only over ROUTED proposals, so its denominator is smaller
+    # than the case count and using 11 for it would certify a bar the run cannot support.
+    denominators = dict.fromkeys(SCORED, len(cases))
+    denominators["narration_groundedness"] = len(grounded)
+    for metric in SCORED:
+        assert_denominator_supports(thresholds[metric], denominators[metric], metric=metric)
+
+    results = tuple(
+        EvalMetricResult.scored(metric, scores[metric], thresholds[metric]) for metric in SCORED
     )
-    return EvalReport(dataset=str(dataset), results=results, n_examples=len(cases))
+    return EvalReport(
+        dataset=str(dataset),
+        results=results,
+        n_examples=len(cases),
+        dataset_digest=dataset_digest(dataset),
+        evaluator=_EVALUATOR,
+    )
+
+
+def _red_case_proofs(cases: list[dict[str, Any]], thresholds: dict[str, float]) -> tuple[Any, ...]:
+    """One proof per scored metric, named after the metric, fed the scorers this run uses.
+
+    The scoring here is inline rather than in named functions, so each proof rebuilds the one
+    comparison its metric makes and shows it going red on a corrupted expectation. That is the
+    same comparison the run performs three lines later, in this process, against these bars.
+    """
+    case = cases[0]
+
+    def _match(expected: str, actual: str) -> float:
+        return 1.0 if expected == actual else 0.0
+
+    def grade_accuracy() -> None:
+        assert_can_go_red(
+            lambda expected: _match(expected, case["expected_grade"]),
+            green=case["expected_grade"],
+            red="doubtful" if case["expected_grade"] != "doubtful" else "pass",
+            threshold=thresholds["grade_accuracy"],
+            metric="grade_accuracy",
+        )
+
+    def movement_accuracy() -> None:
+        assert_can_go_red(
+            lambda expected: _match(expected, case["expected_movement"]),
+            green=case["expected_movement"],
+            red="downgrade" if case["expected_movement"] != "downgrade" else "hold",
+            threshold=thresholds["movement_accuracy"],
+            metric="movement_accuracy",
+        )
+
+    def floor_precision() -> None:
+        # A SET comparison, and the red case is a set that reaches the same grade by a different
+        # rule. That is the failure this metric exists for and the one a grade check calls a pass.
+        expected = set(case["expected_floors"])
+        assert_can_go_red(
+            lambda applied: 1.0 if set(applied) == expected else 0.0,
+            green=tuple(expected),
+            red=(*expected, "floor-restructured"),
+            threshold=thresholds["floor_precision"],
+            metric="floor_precision",
+        )
+
+    def composite_accuracy() -> None:
+        assert_can_go_red(
+            lambda value: 1.0 if value == case["expected_composite"] else 0.0,
+            green=case["expected_composite"],
+            red=int(case["expected_composite"]) + 1,
+            threshold=thresholds["composite_accuracy"],
+            metric="composite_accuracy",
+        )
+
+    def routing_accuracy() -> None:
+        assert_can_go_red(
+            lambda flag: 1.0 if flag == case["expected_requires_human_review"] else 0.0,
+            green=case["expected_requires_human_review"],
+            red=not case["expected_requires_human_review"],
+            threshold=thresholds["routing_accuracy"],
+            metric="routing_accuracy",
+        )
+
+    def pii_safety() -> None:
+        # The real pack, over a record carrying a planted identifier. Not a mock: a scan against
+        # a fake pack proves the scan runs, and this metric's whole failure mode is a pack that
+        # stopped matching.
+        planted = next((str(c["planted"]) for c in cases if c.get("planted")), "S1234567A")
+        assert_can_go_red(
+            lambda text: 0.0 if pack_leak(text, PII_PATTERNS) or planted in text else 1.0,
+            green="redacted summary with no identifier in it",
+            red=f"redacted summary carrying {planted}",
+            threshold=thresholds["pii_safety"],
+            metric="pii_safety",
+        )
+
+    def narration_groundedness() -> None:
+        assert_can_go_red(
+            lambda memo: 1.0 if memo else 0.0,
+            green="a narrated memo body",
+            red="",  # the draft was discarded and the reviewer receives no explanation
+            threshold=thresholds["narration_groundedness"],
+            metric="narration_groundedness",
+        )
+
+    return (
+        grade_accuracy,
+        movement_accuracy,
+        floor_precision,
+        composite_accuracy,
+        routing_accuracy,
+        pii_safety,
+        narration_groundedness,
+    )
 
 
 def run_gate(dataset: Path) -> tuple[EvalReport, bool]:
