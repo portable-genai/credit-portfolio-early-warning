@@ -24,6 +24,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from ... import demo_book
 from ...config import Settings
 from ...domain.kernel import Citation
 from ...domain.models import ArrearsSnapshot, SignalObservation
@@ -64,13 +65,45 @@ WHERE obligor_id = @obligor_id AND tenant != @tenant
 LIMIT 1
 """
 
+#: The READ SET, per table: every column this adapter names, in a SELECT list, a WHERE clause
+#: or an ORDER BY. Declared rather than left implicit because a contract test holds it against
+#: ``infra/terraform/bigquery.tf``, and a read set that only exists inside SQL strings is a read
+#: set no test can see. A sibling repository shipped a schema its own adapter could not query
+#: for exactly this reason; another selected a column the schema never declared.
+SELECTED_COLUMNS: dict[str, tuple[str, ...]] = {
+    "obligor_metrics": (
+        "obligor_id",
+        "tenant",
+        "metric",
+        "value",
+        "period",
+        "as_of",
+        "unit",
+        "source",
+        "source_ref",
+    ),
+    "obligor_servicing": (
+        "obligor_id",
+        "tenant",
+        "currency",
+        "drawn_amount",
+        "past_due_amount",
+        "days_past_due",
+        "as_of",
+        "source_ref",
+    ),
+}
+
 #: Rows per period the window may carry, so ``periods`` bounds the read rather than the client.
 _ROWS_PER_PERIOD = 32
 
 
-def _minor(amount: Any) -> int:
-    """Currency to minor units at the boundary. Money in a float is a rounding argument."""
-    return int(round(float(amount or 0.0) * 100))
+#: Major warehouse units to minor domain units. Imported rather than written here: the local
+#: store performs the SAME conversion, and a conversion implemented twice is one that eventually
+#: differs. The difference this one used to hide was a factor of a hundred, on the leg that
+#: decides whether arrears are material at all -- the Terraform called these columns minor units
+#: while this adapter multiplied them by a hundred, and both could not be true.
+_minor = demo_book.minor
 
 
 class CloudPortfolioFeed:

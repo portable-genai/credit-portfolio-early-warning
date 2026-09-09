@@ -14,7 +14,7 @@ described.
 
 | Profile | For | Adapters |
 |---|---|---|
-| `local` | laptops, CI, demos | fixture portfolio feed, fixture covenant terms, fixture adverse media, deterministic narration stub, in-process audit and tracer. No SDK, no network, no credentials. |
+| `local` | laptops, CI, demos | the shipped obligor book in DuckDB over the warehouse's schema, fixture covenant terms, fixture adverse media, deterministic narration stub, in-process audit and tracer. No SDK, no network, no credentials. |
 | `gcp` | the managed deployment | BigQuery-backed feed, A2A client to `credit-memo-drafting` for covenant terms, managed adverse-media feed, the pinned Vertex model for narration, `agent-observability` for audit and traces. |
 | `onprem` | a client-hosted install | fail-fast placeholders naming the client system to bind. |
 

@@ -12,8 +12,13 @@ make demo             # the presenter-paced walkthrough (starts its own server)
 Every obligor, address, covenant clause and news item in this demo is **synthetic**. The parties
 announce themselves as FICTIONAL, every address is an `.example` domain, and the one national id
 present is a synthetic checksum-valid literal whose only job is to prove that redaction happened.
-The estate lives in one place (`adapters/local/_fixtures.py`) and the demo, the local adapters and
-the evaluation all read it, so there is one synthetic book rather than three that look alike.
+The estate lives in one place and the demo, the local adapters and the evaluation all read it,
+so there is one synthetic book rather than three that look alike. The metric windows and arrears
+snapshots are files (`src/credit_portfolio_ews/data/demo_book/`, newline-delimited JSON in the
+warehouse's own column order), because a deployment reads them from BigQuery and a laptop reads
+them from DuckDB, and a third copy in Python is what used to make those two incomparable.
+`adapters/local/_fixtures.py` owns what no warehouse table holds: the obligor records, the
+covenants and the news.
 
 ## The eight-step walkthrough
 
