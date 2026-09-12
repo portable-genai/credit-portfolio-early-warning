@@ -222,6 +222,13 @@ demo book and catastrophic for a real one, so it proceeds only when every target
 or the dataset's own `book_manifest` declares what it holds fictional. `--dry-run DIR` writes the
 NDJSON it would load and stops; it needs no credentials and no `[gcp]` extra.
 
+**It loads into the schema each table already has, rather than replacing it.** A truncating load
+with no schema autodetects one from the rows: every mode relaxes to NULLABLE and the columns come
+out in the order the JSON serialised them. Nothing fails at the time, and the next
+`terraform plan` then reports every loaded table as `must be replaced` -- BigQuery cannot narrow a
+mode in place -- and a replaced table holds no rows. The loader passes each table's declared
+schema, so a row that does not fit `infra/terraform/bigquery.tf` fails its own load instead.
+
 Verify afterwards with a managed read that names a figure rather than a heading:
 
 ```bash
