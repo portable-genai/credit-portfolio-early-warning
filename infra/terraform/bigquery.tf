@@ -54,6 +54,17 @@ resource "google_bigquery_table" "obligor_metrics" {
   project             = var.project_id
   deletion_protection = true
 
+  # The same key the dataset names, declared again here on purpose. The dataset's
+  # default_encryption_configuration makes BigQuery stamp that key onto every table it creates in
+  # the dataset, so the live table carries an encryption_configuration whether or not this
+  # resource declares one. Leaving it undeclared makes the next plan read the server-set block as
+  # a REMOVAL, and removing an encryption configuration FORCES REPLACEMENT: the table is destroyed
+  # and recreated, and a recreated table holds no rows. CMEK does not cascade in Terraform's model
+  # even though it does in BigQuery's, which is why the key is named twice.
+  encryption_configuration {
+    kms_key_name = google_kms_crypto_key.cmek.id
+  }
+
   schema = jsonencode([
     { name = "obligor_id", type = "STRING", mode = "REQUIRED" },
     { name = "tenant", type = "STRING", mode = "REQUIRED" },
@@ -76,6 +87,17 @@ resource "google_bigquery_table" "obligor_servicing" {
   table_id            = "obligor_servicing"
   project             = var.project_id
   deletion_protection = true
+
+  # The same key the dataset names, declared again here on purpose. The dataset's
+  # default_encryption_configuration makes BigQuery stamp that key onto every table it creates in
+  # the dataset, so the live table carries an encryption_configuration whether or not this
+  # resource declares one. Leaving it undeclared makes the next plan read the server-set block as
+  # a REMOVAL, and removing an encryption configuration FORCES REPLACEMENT: the table is destroyed
+  # and recreated, and a recreated table holds no rows. CMEK does not cascade in Terraform's model
+  # even though it does in BigQuery's, which is why the key is named twice.
+  encryption_configuration {
+    kms_key_name = google_kms_crypto_key.cmek.id
+  }
 
   schema = jsonencode([
     { name = "obligor_id", type = "STRING", mode = "REQUIRED" },
@@ -114,6 +136,17 @@ resource "google_bigquery_table" "book_manifest" {
   table_id            = "book_manifest"
   project             = var.project_id
   deletion_protection = true
+
+  # The same key the dataset names, declared again here on purpose. The dataset's
+  # default_encryption_configuration makes BigQuery stamp that key onto every table it creates in
+  # the dataset, so the live table carries an encryption_configuration whether or not this
+  # resource declares one. Leaving it undeclared makes the next plan read the server-set block as
+  # a REMOVAL, and removing an encryption configuration FORCES REPLACEMENT: the table is destroyed
+  # and recreated, and a recreated table holds no rows. CMEK does not cascade in Terraform's model
+  # even though it does in BigQuery's, which is why the key is named twice.
+  encryption_configuration {
+    kms_key_name = google_kms_crypto_key.cmek.id
+  }
 
   schema = jsonencode([
     { name = "book_version", type = "STRING", mode = "REQUIRED" },
