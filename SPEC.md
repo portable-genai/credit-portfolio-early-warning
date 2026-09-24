@@ -79,7 +79,8 @@ the proposed grade, the movement and notches, every applied floor rule id, any a
 any withheld reason, the composite and per-family raw-against-capped scores, the effective
 past-due clock with its materiality verdict, the IFRS 9 backstop, data completeness, the covenant
 table, the signal set, the item ids awaiting confirmation, the severity and decision, the review
-reasons, `review_ref`, `required_approvals`, the memo (or the reason it was discarded), the
+reasons, `review_ref`, `review_routing` (`routed`, `failed`, `off`, `not_required`),
+`required_approvals`, the memo (or the reason it was discarded), the
 per-feed evidence counts, the citation set, and `grade_applied`, which is always false and is
 TYPED on the response so a console can state it rather than imply it.
 
@@ -110,7 +111,10 @@ default pass record.
   routed through `ReviewRouterPort` to the `human-review-console` in the same request. The flag alone is
   not the escalation. `required_approvals` is 2 when the proposal is into a non-performing grade,
   when the current grade is non-performing and the movement is an upgrade, or when the exposure is
-  above the bank's threshold. The managed adapter refuses to run with no console configured.
+  above the bank's threshold. Under the managed profile, routing on with no console configured
+  refuses at boot; `CREDITEWS_REVIEW_ROUTING=off` is the stated way to run without it. A
+  hand-off that fails at request time is reported as `review_routing: "failed"` with an empty
+  `review_ref`, rather than failing the already-audited review.
 - **Policy is configuration**: every number the engine compares against is parsed from the
   `policy:` block of `config/settings.yaml` into a frozen `EarlyWarningPolicy`, and
   `validate_policy` REFUSES at load rather than at first request. That includes COVERAGE: a
