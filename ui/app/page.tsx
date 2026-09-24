@@ -80,6 +80,15 @@ interface SignalRow {
   citations: CitationRow[];
 }
 
+// What happened to the human-review hand-off, in the words the user needs. A proposal that
+// escalated but is not queued must say so rather than read as reviewed.
+const REVIEW_ROUTING_TEXT: Record<string, string> = {
+  routed: "Sent to the review console",
+  failed: "Could not reach the review console; this proposal is not queued for review",
+  off: "Review routing is off in this deployment; this proposal is not queued for review",
+  not_required: "Not routed: this proposal needs no review",
+};
+
 interface ReviewResponse {
   obligor_id: string;
   obligor_name: string;
@@ -106,6 +115,7 @@ interface ReviewResponse {
   requires_human_review: boolean;
   review_reasons: string[];
   review_ref: string;
+  review_routing?: "routed" | "failed" | "off" | "not_required";
   required_approvals: number;
   grade_applied: boolean;
   summary: string;
@@ -272,7 +282,14 @@ export default function Home() {
             <p className="notapplied">
               <strong>No grade was changed.</strong> grade_applied is {String(result.grade_applied)},
               and this service has no write path to the grading system of record: the port declares
-              read methods only. {result.review_ref ? "Routed to " + result.review_ref : "Not routed"}
+              read methods only.
+            </p>
+            <p className="notapplied" data-review-routing={result.review_routing}>
+              {REVIEW_ROUTING_TEXT[result.review_routing ?? ""] ??
+                (result.review_ref ? "Routed to " + result.review_ref : "Not routed")}
+              {result.review_routing === "routed" && result.review_ref
+                ? " (" + result.review_ref + ")"
+                : ""}
               , requiring {result.required_approvals} approval(s).
             </p>
             {result.review_reasons.length ? (

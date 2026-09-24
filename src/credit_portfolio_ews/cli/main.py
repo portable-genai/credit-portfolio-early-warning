@@ -8,6 +8,7 @@ from datetime import date
 
 from hex_service_kit.logging import configure_logging
 
+from ..adapters.controls import RecordingReviewRouter
 from ..config import build_container, build_review_service
 
 #: Service name on every log line, matching what the API and the tracer report.
@@ -35,7 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     # Idempotent: a process that is both an API app and a CLI entry point configures once.
     configure_logging(container.settings.profile, service=_SERVICE_NAME)
     tenant = args.tenant or container.settings.tenant
-    service = build_review_service(container)
+    routing = RecordingReviewRouter(container.review_router)
+    service = build_review_service(container, routing=routing)
 
     if args.command == "obligors":
         for record in service.obligors(tenant):
@@ -64,10 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"  requires_human_review: {assessment.requires_human_review}")
         print(f"  grade_applied: {review.grade_applied}")
+        # Rule R8 on the CLI path too: the same proposal, the same router. A surface that only
+        # printed the flag would be a second place an escalation can stop.
+        print(f"  human review hand-off : {routing.outcome.value} {review.review_ref}".rstrip())
         if assessment.requires_human_review:
-            # Rule R8 on the CLI path too: the same proposal, the same router. A surface that
-            # only printed the flag would be a second place an escalation can stop.
-            print(f"  routed to human review: {review.review_ref}")
             print(f"  approvals required: {review.required_approvals}")
         return 0
 

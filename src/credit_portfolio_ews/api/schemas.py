@@ -11,6 +11,8 @@ period a proposal was tested against.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 from ..domain.models import CovenantTest, EarlyWarningSignal, WatchlistReview
@@ -165,8 +167,11 @@ class WatchlistReviewResponse(BaseModel):
     decision: str = "allowed"
     requires_human_review: bool = False
     review_reasons: list[str] = []
-    #: Where the escalation WENT (rule R8). Empty only when it did not escalate.
+    #: Where the escalation WENT (rule R8). Empty unless ``review_routing`` is ``routed``.
     review_ref: str = ""
+    #: What happened to the hand-off: routed, failed, off or not_required. ``failed`` means the
+    #: proposal is NOT queued for review, and the console says so.
+    review_routing: Literal["routed", "failed", "off", "not_required"] = "not_required"
     required_approvals: int = 1
     #: Always false, and TYPED here so a console can STATE it rather than imply it: no adapter in
     #: any profile has a method that could write a grade.
@@ -179,7 +184,9 @@ class WatchlistReviewResponse(BaseModel):
     citations: list[CitationModel] = []
 
     @classmethod
-    def from_domain(cls, review: WatchlistReview) -> WatchlistReviewResponse:
+    def from_domain(
+        cls, review: WatchlistReview, *, review_routing: str = "not_required"
+    ) -> WatchlistReviewResponse:
         assessment = review.assessment
         proposal = assessment.proposal
         return cls(
@@ -220,6 +227,7 @@ class WatchlistReviewResponse(BaseModel):
             requires_human_review=assessment.requires_human_review,
             review_reasons=list(assessment.review_reasons),
             review_ref=review.review_ref,
+            review_routing=review_routing,  # type: ignore[arg-type]
             required_approvals=review.required_approvals,
             grade_applied=review.grade_applied,
             summary=assessment.summary,

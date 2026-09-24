@@ -68,6 +68,7 @@ from hex_service_kit.web import (
     make_require_service_caller,
 )
 
+from ..adapters.controls import RecordingReviewRouter
 from ..config import (
     LOCAL_PROFILE,
     Container,
@@ -308,6 +309,9 @@ def watchlist_review(
     """
     container = _container()
     tenant = principal.tenant or container.settings.tenant
+    # The hand-off never fails an already-assessed, already-audited review; the response says
+    # what happened to it instead (the fleet's runtime-control contract).
+    routing = RecordingReviewRouter(container.review_router)
     try:
         as_of = date.fromisoformat(request.as_of) if request.as_of else date.today()
     except ValueError as exc:
@@ -316,7 +320,7 @@ def watchlist_review(
             detail=f"as_of must be an ISO date, got {request.as_of!r}",
         ) from exc
     try:
-        review = build_review_service(container).review(
+        review = build_review_service(container, routing=routing).review(
             request.obligor_id,
             tenant=tenant,
             actor=principal.actor,
@@ -328,7 +332,7 @@ def watchlist_review(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     except ObligorNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return WatchlistReviewResponse.from_domain(review)
+    return WatchlistReviewResponse.from_domain(review, review_routing=routing.outcome.value)
 
 
 @app.get("/v1/obligors", response_model=list[ObligorSummary], tags=["artifacts"])

@@ -40,13 +40,15 @@ seconds earlier by an operator, so it belongs in the deploy, not in production t
 
 from __future__ import annotations
 
+import functools
 import importlib
+import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from hex_service_kit.identity import IdentityPort
@@ -54,7 +56,7 @@ from hex_service_kit.netdefaults import ConfiguredEmptyError, EnvSetting, read_e
 
 from .domain.policy import EarlyWarningPolicy, load_policy
 from .domain.watchlist_service import WatchlistReviewService
-from .envread import setting_or_default
+from .envread import boolean_setting, setting_or_default
 from .ports.adverse_media import AdverseMediaPort
 from .ports.audit import AuditSinkPort
 from .ports.covenant_terms import CovenantTermsPort
@@ -64,6 +66,9 @@ from .ports.identity import CLIENT_ASSERTED, declared_end_user_auth
 from .ports.observability import EvaluationGatePort, ObservabilityTracerPort
 from .ports.portfolio_feed import PortfolioFeedPort
 from .ports.review_router import ReviewRouterPort
+
+if TYPE_CHECKING:  # pragma: no cover - typing only; adapters.controls imports this module
+    from .adapters.controls import RecordingReviewRouter
 
 _PROFILE_ENV = "CREDITEWS_PROFILE"
 _SETTINGS_ENV = "CREDITEWS_SETTINGS"
@@ -426,6 +431,29 @@ def _policy_from(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return {str(key): value for key, value in block.items()}
 
 
+#: The switch for review routing, the one cheap runtime control this service has, read in three
+#: states: unset is ON (the reference posture keeps cheap controls on), a boolean value wins, and
+#: an emptied or unrecognised value refuses at boot. See the fleet's runtime-control contract.
+REVIEW_ROUTING_ENV = "CREDITEWS_REVIEW_ROUTING"
+
+_log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class ControlSwitches:
+    """Which cheap runtime controls this process runs. Every one defaults on."""
+
+    review_routing: bool = True
+
+    @classmethod
+    def from_env(cls) -> ControlSwitches:
+        return cls(review_routing=boolean_setting(REVIEW_ROUTING_ENV, default=True))
+
+    def switched_off(self) -> tuple[str, ...]:
+        """The environment variables of every control that is off, for the startup warning."""
+        return () if self.review_routing else (REVIEW_ROUTING_ENV,)
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Deployment settings, resolved from the settings file and the environment."""
@@ -446,6 +474,8 @@ class Settings:
     book_path: str = ":memory:"
     #: Base URL of the human-review-console Human-Review console the R8 producer path submits to.
     review_url: str = ""
+    #: Which cheap runtime controls run; see :class:`ControlSwitches`.
+    controls: ControlSwitches = field(default_factory=ControlSwitches)
     #: The audience the managed IAP identity adapter verifies the signed assertion AGAINST: the
     #: IAP-protected resource, ``/projects/<NUM>/global/backendServices/<ID>`` behind an HTTPS
     #: load balancer. It is CONFIGURATION rather than a literal because it is per-deployment, and
@@ -551,7 +581,7 @@ class Settings:
     def load(cls, path: Path | None = None) -> Settings:
         data = _read_settings_file(path)
         choice = resolve_profile()
-        return cls(
+        settings = cls(
             profile=choice.profile,
             profile_explicit=choice.explicit,
             region=str(data.get("region") or _REGION),
@@ -568,6 +598,25 @@ class Settings:
             grade_registry_url=str(data.get("grade_registry_url") or ""),
             adapters=_bindings_from(data),
             policy=_policy_from(data),
+            controls=ControlSwitches.from_env(),
+        )
+        _refuse_unconfigured_controls(settings)
+        return settings
+
+
+def _refuse_unconfigured_controls(settings: Settings) -> None:
+    """Review routing on under the managed profile must name its console, checked at boot.
+
+    The managed router used to discover a missing ``review_url`` on the first escalation and
+    fail that request; the configuration error belongs at startup, with the two ways out.
+    """
+    if settings.profile not in _MANAGED_PROFILES:
+        return
+    if settings.controls.review_routing and not settings.review_url.strip():
+        raise ConfiguredEmptyError(
+            f"Review routing is on under profile {settings.profile!r} but HUMAN_REVIEW_URL "
+            f"(config/settings.yaml review_url) is not set. Name the human-review-console base "
+            f"URL, or set {REVIEW_ROUTING_ENV}=off to run without routing."
         )
 
 
@@ -598,6 +647,10 @@ class Container:
 
     @cached_property
     def review_router(self) -> ReviewRouterPort:
+        if not self.settings.controls.review_routing:
+            from .adapters.controls import DisabledReviewRouter
+
+            return DisabledReviewRouter(self.settings)
         adapter = self._bind("review_router")
         assert isinstance(adapter, ReviewRouterPort)
         return adapter
@@ -645,8 +698,22 @@ class Container:
         return adapter
 
 
+@functools.cache
+def warn_switched_off(switched_off: tuple[str, ...]) -> None:
+    """Log a switched-off posture once per process, however many containers are built.
+
+    The agent tools build a container per tool call, so a warning in :func:`build_container`
+    itself would repeat on every call and drown the one line an operator needs to see.
+    """
+    _log.warning("runtime controls switched off: %s", ", ".join(switched_off))
+
+
 def build_container(settings: Settings | None = None) -> Container:
-    return Container(settings or Settings.load())
+    settings = settings or Settings.load()
+    switched_off = settings.controls.switched_off()
+    if switched_off:
+        warn_switched_off(switched_off)
+    return Container(settings)
 
 
 def build_policy(settings: Settings) -> EarlyWarningPolicy:
@@ -660,11 +727,19 @@ def build_policy(settings: Settings) -> EarlyWarningPolicy:
     return load_policy(settings.policy)
 
 
-def build_review_service(container: Container) -> WatchlistReviewService:
+def build_review_service(
+    container: Container, *, routing: RecordingReviewRouter | None = None
+) -> WatchlistReviewService:
     """Wire the domain service to the container's bound ports. ONE wiring site, not three.
 
     The API, the CLI and the agent tools all call this, so a port added to the service cannot be
     wired on two surfaces and forgotten on the third.
+
+    ``routing`` is the caller's recording wrapper around the bound review router. A surface that
+    returns a review passes one and reports its outcome (``review_routing``): the wrapper turns
+    a failed hand-off into ``failed`` and a logged warning rather than a failed request, so the
+    domain stays unchanged and the caller still says what happened. Without one, the bound
+    router is used directly.
     """
     return WatchlistReviewService(
         audit=container.audit,
@@ -673,7 +748,7 @@ def build_review_service(container: Container) -> WatchlistReviewService:
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=container.generation,
-        review_router=container.review_router,
+        review_router=routing if routing is not None else container.review_router,
         tracer=container.tracer,
         policy=build_policy(container.settings),
     )
