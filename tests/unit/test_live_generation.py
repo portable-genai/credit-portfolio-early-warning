@@ -93,13 +93,14 @@ def test_a_fenced_answer_after_an_unusable_one_is_retried_and_returned_as_strict
 
 
 def test_the_call_carries_the_managed_narrators_instruction_budget_and_temperature() -> None:
-    server = _ScriptedServer(_fenced_grounded)
-    LocalModelMemoNarrator(local_settings(profile=LIVE_PROFILE), transport=server).generate(
-        "- item id: n-2"
-    )
-    body = server.bodies[0]
+    server = _ScriptedServer(_fenced_grounded, _fenced_grounded)
+    narrator = LocalModelMemoNarrator(local_settings(profile=LIVE_PROFILE), transport=server)
+    narrator.generate("- item id: n-2", temperature=0.0)
+    narrator.generate("- item id: n-2")
+    body, free = server.bodies
     assert body["model"] == DEFAULT_LOCAL_MODEL
-    assert body["temperature"] == 0.0
+    assert body["temperature"] == 0.0, "a pinned call site's temperature is passed through"
+    assert "temperature" not in free, "a free call sends no temperature, never a default"
     assert body["max_tokens"] == MAX_OUTPUT_TOKENS
     system, user = body["messages"]
     assert system["role"] == "system" and system["content"].startswith(SYSTEM_INSTRUCTION)
@@ -141,7 +142,7 @@ def test_the_container_builds_every_port_under_the_live_profile() -> None:
     assert personas, "the live lane serves the same seeded personas as local"
 
 
-def test_the_banner_names_the_local_model_the_live_lane_calls(
+def test_the_model_pill_names_the_local_model_the_live_lane_calls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("LOCAL_MODEL", raising=False)

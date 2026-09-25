@@ -85,7 +85,11 @@ model**.
 - **Model**: `gemini-3.5-flash`, pinned as a module constant in
   `adapters/gcp/generation.py` so `config.generator_model` names it by reading the BINDING rather
   than a second settings string that could drift.
-- **Call shape**: `temperature=0.0`, `max_output_tokens=768`, `response_mime_type="application/json"`.
+- **Call shape**: `max_output_tokens=768`, `response_mime_type="application/json"`. Sampling is
+  decided per call (CONTRIBUTING row 5c): the media categorisation is pinned at `temperature=0.0`
+  because its answer is a classification the engine compares, and the memo draft sends no
+  temperature at all, because it is drafting and every figure in it is checked against the
+  engine's own before it is kept. No online search tool is attached to either call.
 - **System instruction**: restate facts as JSON, never introduce a figure, date or grade that was
   not supplied, never recommend a classification.
 
