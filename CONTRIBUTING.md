@@ -103,7 +103,7 @@ equality across all five. That test is the reason this list is exhaustive rather
 |---|---|---|---|
 | 1 | `src/credit_portfolio_ews/ports/<port>.py` | The `@runtime_checkable` Protocol. Name the boundary, not the implementation. | `test_port_parity.py` conformance tests |
 | 2 | `src/credit_portfolio_ews/ports/__init__.py` | Import it, add it to `PORT_PROTOCOLS` and to `__all__`, so there is one import site. | the drift guard (home 1) |
-| 3 | `src/credit_portfolio_ews/config.py` | An entry in `DEFAULT_BINDINGS` binding ALL THREE profiles, plus one `cached_property` on `Container` that asserts the Protocol. | the drift guard (homes 2 and 4) |
+| 3 | `src/credit_portfolio_ews/config.py` | An entry in `DEFAULT_BINDINGS` binding EVERY profile (`live` takes the `local` adapter unless the port calls a model), plus one `cached_property` on `Container` that asserts the Protocol. | the drift guard (homes 2 and 4) |
 | 4 | `config/settings.yaml` | The same three bindings under `adapters.<port>`. | the drift guard (home 3) |
 | 5 | `src/credit_portfolio_ews/adapters/{local,gcp,onprem}/<port>.py` | Three adapters. `local` WORKS offline, `gcp` imports its SDK lazily, `onprem` RAISES `NotImplementedError`. A placeholder that returns successfully is a false portability claim; one that raises a bare `NotImplementedError` on a SERVING path answers 500 with no body, so raise a subclass that also carries a status and a reason (see `adapters/onprem/identity.py`). | `test_behavioral_parity.py` |
 | 6 | `tests/contract/canonical.py` | A `PortCase`: the canonical `invoke`, what `answered` means, and the managed family's documented refusal. | the drift guard (home 5) |

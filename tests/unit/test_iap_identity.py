@@ -368,16 +368,20 @@ _REBOUND_SETTINGS = "\n".join(
         "review_url: ${HUMAN_REVIEW_URL:-}",
         "adapters:",
         "  audit:",
-        *[f"    {p}: {_PKG}.adapters.local.audit:LocalAuditAdapter" for p in ("local", "gcp")],
+        *[
+            f"    {p}: {_PKG}.adapters.local.audit:LocalAuditAdapter"
+            for p in ("local", "live", "gcp")
+        ],
         f"    onprem: {_PKG}.adapters.onprem.audit:OnPremAuditAdapter",
         "  identity:",
         f"    local: {_PKG}.adapters.local.identity:LocalIdentityAdapter",
+        f"    live: {_PKG}.adapters.local.identity:LocalIdentityAdapter",
         f"    gcp: {_PKG}.adapters.gcp.identity:IapIdentityAdapter",
         f"    onprem: {_PKG}.adapters.onprem.identity:OnPremIdentityAdapter",
         "  review_router:",
         *[
             f"    {p}: {_PKG}.adapters.local.review_router:LocalReviewRouter"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.review_router:OnPremReviewRouter",
         # Every port must bind every profile or `_bindings_from` refuses the whole file, so
@@ -386,13 +390,13 @@ _REBOUND_SETTINGS = "\n".join(
         "  tracer:",
         *[
             f"    {p}: {_PKG}.adapters.local.tracer:LocalNoopTracerAdapter"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.tracer:OnPremTracerAdapter",
         "  evaluation:",
         *[
             f"    {p}: {_PKG}.adapters.local.evaluation:LocalOfflineEvalAdapter"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.evaluation:OnPremEvalAdapter",
         # The five vertical ports, rebound to the offline adapters for the same reason: this
@@ -401,29 +405,32 @@ _REBOUND_SETTINGS = "\n".join(
         "  covenant_terms:",
         *[
             f"    {p}: {_PKG}.adapters.local.covenant_terms:LocalCovenantTerms"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.covenant_terms:OnPremCovenantTerms",
         "  portfolio_feed:",
         *[
             f"    {p}: {_PKG}.adapters.local.portfolio_feed:LocalPortfolioFeed"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.portfolio_feed:OnPremPortfolioFeed",
         "  adverse_media:",
         *[
             f"    {p}: {_PKG}.adapters.local.adverse_media:LocalAdverseMedia"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.adverse_media:OnPremAdverseMedia",
         "  grade_registry:",
         *[
             f"    {p}: {_PKG}.adapters.local.grade_registry:LocalGradeRegistry"
-            for p in ("local", "gcp")
+            for p in ("local", "live", "gcp")
         ],
         f"    onprem: {_PKG}.adapters.onprem.grade_registry:OnPremGradeRegistry",
         "  generation:",
-        *[f"    {p}: {_PKG}.adapters.local.generation:LocalMemoNarrator" for p in ("local", "gcp")],
+        *[
+            f"    {p}: {_PKG}.adapters.local.generation:LocalMemoNarrator"
+            for p in ("local", "live", "gcp")
+        ],
         f"    onprem: {_PKG}.adapters.onprem.generation:OnPremMemoNarrator",
     ]
 )

@@ -40,6 +40,8 @@ from hex_service_kit.netdefaults import ConfiguredEmptyError
 
 from credit_portfolio_ews.config import (
     KNOWN_PROFILES,
+    LAPTOP_PROFILES,
+    LIVE_PROFILE,
     LOCAL_PROFILE,
     PROFILE_CHOICE,
     UNCONSENTED_PROFILE,
@@ -173,7 +175,22 @@ def test_the_two_derived_postures_disagree_exactly_when_nobody_chose() -> None:
     assert unconsented.exposure_profile != unconsented.bind_profile
     for profile in KNOWN_PROFILES:
         chosen = resolve_profile({_PROFILE_ENV: profile})
-        assert chosen.exposure_profile == chosen.bind_profile == profile
+        expected = LOCAL_PROFILE if profile in LAPTOP_PROFILES else profile
+        assert chosen.exposure_profile == chosen.bind_profile == expected
+
+
+def test_the_live_lane_takes_exactly_the_local_posture() -> None:
+    """``live`` changes which model answers, never who may reach the service.
+
+    Every commons posture helper recognises ``local`` by exact match, so a ``live`` choice that
+    reached them as ``live`` would bind every interface, drop the dev CORS allowlist and switch
+    HSTS and JSON logging on: the deployed posture on a laptop with seeded personas.
+    """
+    chosen = resolve_profile({_PROFILE_ENV: LIVE_PROFILE})
+    assert (chosen.profile, chosen.explicit) == (LIVE_PROFILE, True)
+    assert chosen.exposure_profile == LOCAL_PROFILE
+    assert chosen.bind_profile == LOCAL_PROFILE
+    assert chosen.service_auth_configured is True
 
 
 def test_settings_carry_the_deliberateness_and_direct_construction_is_deliberate() -> None:

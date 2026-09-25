@@ -10,11 +10,12 @@ and one settings file maps each port to an adapter family. A purity check in the
 `domain/` and `ports/` trees and fails on any cloud import, so this is enforced rather than
 described.
 
-### What are the three profiles?
+### What are the profiles?
 
 | Profile | For | Adapters |
 |---|---|---|
 | `local` | laptops, CI, demos | the shipped obligor book in DuckDB over the warehouse's schema, fixture covenant terms, fixture adverse media, deterministic narration stub, in-process audit and tracer. No SDK, no network, no credentials. |
+| `live` | a laptop demo with a real model | everything `local` binds, except narration: a local open-weight model (`LOCAL_MODEL`, served at `LOCAL_MODEL_URL`) through the shared kit client. |
 | `gcp` | the managed deployment | BigQuery-backed feed, A2A client to `credit-memo-drafting` for covenant terms, managed adverse-media feed, the pinned Vertex model for narration, `agent-observability` for audit and traces. |
 | `onprem` | a client-hosted install | fail-fast placeholders naming the client system to bind. |
 
