@@ -70,7 +70,15 @@ make ui-install ui-check   # the micro-frontend: tsc, node tests, production bui
 One env var, `CREDITEWS_PROFILE`, selects the adapter family:
 
 - `local` (default) : SDK-free offline stack (seeded dev personas, hash-chained SQLite WORM audit
-  from the commons). No cloud SDK. The default for dev/test/CI.
+  from the commons). No cloud SDK. The default for dev/test/CI and `make demo`.
+- `live` : the `local` stack and posture with ONE difference: the `generation` port drafts memos
+  and categorises media with a local open-weight model through the shared kit client
+  (`hex_service_kit.localmodel`), at `LOCAL_MODEL_URL` (default
+  `http://127.0.0.1:8001/chat/completions`) serving `LOCAL_MODEL` (default
+  `mlx-community/gemma-4-31b-it-8bit`). Start the server with
+  `uv venv --python 3.13 .mlx-venv && uv pip install --python .mlx-venv mlx-vlm` then
+  `.mlx-venv/bin/python -m mlx_vlm.server --model mlx-community/gemma-4-31b-it-8bit --port 8001`,
+  and run `CREDITEWS_PROFILE=live make run-api`. Never used by the gate or CI.
 - `gcp` : managed cloud (Cloud Logging WORM, IAP identity). SDK imports are lazy.
 - `onprem` : fail-fast `NotImplementedError` placeholders (the reversibility proof, P-12).
 

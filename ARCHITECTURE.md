@@ -43,6 +43,8 @@ startup and Terraform serving authorization until its live integration test exis
   every read port shares: 403 for a record under another tenant, 404 only for one that exists
   nowhere.
 - `adapters/{local,gcp,onprem}/` : one adapter per port per profile. GCP imports are lazy.
+  `adapters/live/generation.py` is the laptop `live` profile's narrator: a local open-weight model
+  through the kit's `localmodel` client. Every other `live` binding is the `local` adapter.
   `adapters/_review_payload.py` is the shared, redacted conversion to the review kit's wire shape.
 - `config.py` : `Settings` + `Container` (lazy DI, dotted `module:Class` bindings loaded from
   `config/settings.yaml`).

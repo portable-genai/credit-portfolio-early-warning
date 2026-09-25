@@ -38,7 +38,7 @@ loading a line of credit logic; `domain/models.py` holds this service's request 
 | **Vertical (the artifacts themselves)** | the `credit-portfolio-early-warning` models in `domain/models.py` (`WatchGrade`, `CovenantType`, `CovenantOperator`, `CovenantStatus`, `SignalFamily`, `Ifrs9Backstop`, the obligor and review types), the engines (`early_warning.py`, `policy.py`), the orchestrator (`watchlist_service.py`), the narrator (`narration.py`), the local fixture corpora under `adapters/local/` and the eval golden sets | rewrite for your book |
 
 If your product is another *observations-in, cited-and-graded-proposal-out* monitor, most of the
-hexagon, the three profiles, the deterministic-scoring pattern, the eval gate and the `human-review-console` review
+hexagon, the profiles, the deterministic-scoring pattern, the eval gate and the `human-review-console` review
 routing transfer directly; you replace the signal families and their sources, and retune the
 policy dataclass.
 

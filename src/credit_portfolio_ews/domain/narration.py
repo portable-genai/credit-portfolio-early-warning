@@ -32,6 +32,16 @@ _NUMBER = re.compile(r"\d+(?:\.\d+)?")
 #: The label the FACTS block opens with. The offline narrator restates everything after it.
 FACTS_MARKER = "FACTS (do not add to these):"
 
+#: The system instruction every model-backed narrator sends beside the prompt, managed and local
+#: alike, so the managed and laptop lanes are asked the same thing.
+SYSTEM_INSTRUCTION = (
+    "You restate credit early-warning facts as JSON. You never introduce a figure, a date or a "
+    "grade that was not given to you, and you never recommend a classification of your own."
+)
+
+#: A memo is a paragraph. The budget is a cost control and a bound on what a runaway draft costs.
+MAX_OUTPUT_TOKENS = 768
+
 
 @dataclass(frozen=True, slots=True)
 class ReviewMemo:

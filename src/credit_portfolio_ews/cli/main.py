@@ -9,7 +9,7 @@ from datetime import date
 from hex_service_kit.logging import configure_logging
 
 from ..adapters.controls import RecordingReviewRouter
-from ..config import build_container, build_review_service
+from ..config import build_container, build_review_service, posture_profile
 
 #: Service name on every log line, matching what the API and the tracer report.
 _SERVICE_NAME = "credit-portfolio-early-warning"
@@ -33,8 +33,9 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     container = build_container()
-    # Idempotent: a process that is both an API app and a CLI entry point configures once.
-    configure_logging(container.settings.profile, service=_SERVICE_NAME)
+    # Idempotent: a process that is both an API app and a CLI entry point configures once. A
+    # laptop profile (local, live) logs plain text, whichever model it binds.
+    configure_logging(posture_profile(container.settings.profile), service=_SERVICE_NAME)
     tenant = args.tenant or container.settings.tenant
     routing = RecordingReviewRouter(container.review_router)
     service = build_review_service(container, routing=routing)

@@ -1,9 +1,11 @@
 """Settings + Container: profile-driven dependency injection (the hexagon wiring).
 
 One env var (``CREDITEWS_PROFILE``) selects the adapter family for every
-port. ``local`` is the SDK-free offline default (dev/test/CI); ``gcp`` is the managed cloud
-stack (SDK imports stay lazy so ``local``/``onprem`` import with no cloud SDK installed);
-``onprem`` is the fail-fast portability placeholder. The dotted ``module:Class`` binding table
+port. ``local`` is the SDK-free offline default (dev/test/CI); ``live`` is the same laptop stack
+with the model port bound to a local open-weight model through the shared kit client
+(``hex_service_kit.localmodel``); ``gcp`` is the managed cloud stack (SDK imports stay lazy so
+``local``/``live``/``onprem`` import with no cloud SDK installed); ``onprem`` is the fail-fast
+portability placeholder. The dotted ``module:Class`` binding table
 is the single source of truth, exactly like the reference build, and it lives in
 ``config/settings.yaml`` so a deployment can rebind a port without a code edit. The table below
 is the shipped default that file carries; ``tests/test_settings_file.py`` fails the build if the
@@ -79,8 +81,15 @@ _REGION = "asia-southeast1"
 DEFAULT_SETTINGS_PATH = Path("config") / "settings.yaml"
 
 LOCAL_PROFILE = "local"
+#: The laptop lane with a real model: every port binds the ``local`` adapter except the model
+#: port, which calls the local open-weight model server through the shared kit client.
+LIVE_PROFILE = "live"
 #: The only profiles this service knows how to bind. Anything else is a configuration error.
-KNOWN_PROFILES: tuple[str, ...] = (LOCAL_PROFILE, "gcp", "onprem")
+KNOWN_PROFILES: tuple[str, ...] = (LOCAL_PROFILE, LIVE_PROFILE, "gcp", "onprem")
+#: The profiles that run on a laptop and take the LOCAL posture: loopback bind, seeded personas,
+#: the dev CORS allowlist, plain-text logs, no HSTS. ``live`` differs from ``local`` in which
+#: model answers, never in who may reach the service.
+LAPTOP_PROFILES: frozenset[str] = frozenset({LOCAL_PROFILE, LIVE_PROFILE})
 #: The profiles whose runtime is a managed cloud, for :attr:`Settings.runtime`. ``onprem`` is
 #: NOT one: its point is that it runs on the adopter's own iron, so the banner says local.
 _MANAGED_PROFILES: frozenset[str] = frozenset({"gcp"})
@@ -104,6 +113,16 @@ _MODEL_CONSTANTS: tuple[str, ...] = ("_MODEL", "_DEFAULT_MODEL")
 #: a binding table: it exists so that "no choice was made" is a distinct input to the security
 #: layers rather than being indistinguishable from a deliberately chosen ``local``.
 UNCONSENTED_PROFILE = "unconfigured"
+
+
+def posture_profile(profile: str) -> str:
+    """The profile string a posture decision is made on: ``local`` for every laptop profile.
+
+    The commons' posture helpers (bind host, CORS, security headers, the S2S scheme, logging)
+    recognise ``local`` by exact match. ``live`` must get exactly that posture, so it is
+    translated here, once, rather than taught to every helper.
+    """
+    return LOCAL_PROFILE if profile in LAPTOP_PROFILES else profile
 
 
 def _validate_profile(profile: str) -> str:
@@ -167,6 +186,17 @@ def _declared_model(binding: str) -> str:
     return ""
 
 
+def _configured_local_model(binding: str) -> str:
+    """The model a laptop binding calls, from its module's ``configured_model()``, or ``""``.
+
+    Read off the BINDING like the managed case, so a ``live`` profile rebound to the offline
+    narrator stops naming a model it no longer calls.
+    """
+    module_path, _, _ = binding.partition(":")
+    reader = getattr(importlib.import_module(module_path), "configured_model", None)
+    return str(reader()) if callable(reader) else ""
+
+
 @dataclass(frozen=True, slots=True)
 class ProfileChoice:
     """The ONE resolution of the profile variable, and what each consumer reads.
@@ -202,7 +232,7 @@ class ProfileChoice:
         like ``local``: it gets :data:`UNCONSENTED_PROFILE`, which is no origin's allowlist, no
         ``X-Dev-Persona`` and HSTS on.
         """
-        return self.profile if self.explicit else UNCONSENTED_PROFILE
+        return posture_profile(self.profile) if self.explicit else UNCONSENTED_PROFILE
 
     @property
     def bind_profile(self) -> str:
@@ -213,7 +243,7 @@ class ProfileChoice:
         Handing :attr:`exposure_profile` to that guard instead would let an unconfigured deploy
         bind every interface, which is the exact inversion this pair of properties prevents.
         """
-        return self.profile if self.explicit else LOCAL_PROFILE
+        return posture_profile(self.profile) if self.explicit else LOCAL_PROFILE
 
     @property
     def service_auth_configured(self) -> bool:
@@ -284,51 +314,61 @@ _PKG = "credit_portfolio_ews"
 DEFAULT_BINDINGS: dict[str, dict[str, str]] = {
     "audit": {
         "local": f"{_PKG}.adapters.local.audit:LocalAuditAdapter",
+        "live": f"{_PKG}.adapters.local.audit:LocalAuditAdapter",
         "gcp": f"{_PKG}.adapters.gcp.audit:CloudAuditAdapter",
         "onprem": f"{_PKG}.adapters.onprem.audit:OnPremAuditAdapter",
     },
     "identity": {
         "local": f"{_PKG}.adapters.local.identity:LocalIdentityAdapter",
+        "live": f"{_PKG}.adapters.local.identity:LocalIdentityAdapter",
         "gcp": f"{_PKG}.adapters.gcp.identity:IapIdentityAdapter",
         "onprem": f"{_PKG}.adapters.onprem.identity:OnPremIdentityAdapter",
     },
     "review_router": {
         "local": f"{_PKG}.adapters.local.review_router:LocalReviewRouter",
+        "live": f"{_PKG}.adapters.local.review_router:LocalReviewRouter",
         "gcp": f"{_PKG}.adapters.gcp.review_router:CloudReviewRouter",
         "onprem": f"{_PKG}.adapters.onprem.review_router:OnPremReviewRouter",
     },
     "tracer": {
         "local": f"{_PKG}.adapters.local.tracer:LocalNoopTracerAdapter",
+        "live": f"{_PKG}.adapters.local.tracer:LocalNoopTracerAdapter",
         "gcp": f"{_PKG}.adapters.gcp.tracer:CloudTracerAdapter",
         "onprem": f"{_PKG}.adapters.onprem.tracer:OnPremTracerAdapter",
     },
     "evaluation": {
         "local": f"{_PKG}.adapters.local.evaluation:LocalOfflineEvalAdapter",
+        "live": f"{_PKG}.adapters.local.evaluation:LocalOfflineEvalAdapter",
         "gcp": f"{_PKG}.adapters.gcp.evaluation:ManagedEvalGateAdapter",
         "onprem": f"{_PKG}.adapters.onprem.evaluation:OnPremEvalAdapter",
     },
     "covenant_terms": {
         "local": f"{_PKG}.adapters.local.covenant_terms:LocalCovenantTerms",
+        "live": f"{_PKG}.adapters.local.covenant_terms:LocalCovenantTerms",
         "gcp": f"{_PKG}.adapters.gcp.covenant_terms:CloudCovenantTerms",
         "onprem": f"{_PKG}.adapters.onprem.covenant_terms:OnPremCovenantTerms",
     },
     "portfolio_feed": {
         "local": f"{_PKG}.adapters.local.portfolio_feed:LocalPortfolioFeed",
+        "live": f"{_PKG}.adapters.local.portfolio_feed:LocalPortfolioFeed",
         "gcp": f"{_PKG}.adapters.gcp.portfolio_feed:CloudPortfolioFeed",
         "onprem": f"{_PKG}.adapters.onprem.portfolio_feed:OnPremPortfolioFeed",
     },
     "adverse_media": {
         "local": f"{_PKG}.adapters.local.adverse_media:LocalAdverseMedia",
+        "live": f"{_PKG}.adapters.local.adverse_media:LocalAdverseMedia",
         "gcp": f"{_PKG}.adapters.gcp.adverse_media:Hrz3AdverseMedia",
         "onprem": f"{_PKG}.adapters.onprem.adverse_media:OnPremAdverseMedia",
     },
     "grade_registry": {
         "local": f"{_PKG}.adapters.local.grade_registry:LocalGradeRegistry",
+        "live": f"{_PKG}.adapters.local.grade_registry:LocalGradeRegistry",
         "gcp": f"{_PKG}.adapters.gcp.grade_registry:CloudGradeRegistry",
         "onprem": f"{_PKG}.adapters.onprem.grade_registry:OnPremGradeRegistry",
     },
     "generation": {
         "local": f"{_PKG}.adapters.local.generation:LocalMemoNarrator",
+        "live": f"{_PKG}.adapters.live.generation:LocalModelMemoNarrator",
         "gcp": f"{_PKG}.adapters.gcp.generation:VertexMemoNarrator",
         "onprem": f"{_PKG}.adapters.onprem.generation:OnPremMemoNarrator",
     },
@@ -555,7 +595,9 @@ class Settings:
             # generating, so naming a model would advertise one that never answers.
             if self.profile == "onprem":
                 return "onprem-not-implemented"
-            return "deterministic-offline-stub"
+            # A laptop binding that calls a real model says which one (the live lane's
+            # ``LOCAL_MODEL``); the deterministic narrator declares none and is named as a stub.
+            return _configured_local_model(binding) or "deterministic-offline-stub"
         if _GENERATOR_MODEL_ATTR:
             named = _model_from_settings(self, _GENERATOR_MODEL_ATTR)
             if named:

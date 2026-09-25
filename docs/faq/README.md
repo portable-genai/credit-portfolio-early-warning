@@ -7,7 +7,7 @@ specific audience; skim the one that matches your role.
 | FAQ | For | Answers |
 |---|---|---|
 | [security-faq.md](security-faq.md) | AppSec / security review | server-side identity, the exposure guard, tenant isolation, secrets, supply chain, the audit chain, what is in and out of scope |
-| [portability-faq.md](portability-faq.md) | Architecture / cloud / exit planning | no-lock-in, the three profiles, the sovereign exit, data export |
+| [portability-faq.md](portability-faq.md) | Architecture / cloud / exit planning | no-lock-in, the profiles, the sovereign exit, data export |
 | [features-faq.md](features-faq.md) | Product / credit / delivery | what the engine does, what is deterministic vs model-written, and the boundary with sibling catalog systems |
 | [adoption-faq.md](adoption-faq.md) | Engineering leads forking the repo | rename, upstream fixes, extension points, what stays open |
 | [compliance-faq.md](compliance-faq.md) | Compliance / model risk / second line | regulatory posture, maker-checker, residency, retention, model-risk evidence |

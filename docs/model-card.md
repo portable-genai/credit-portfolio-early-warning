@@ -48,7 +48,7 @@ test needs a lifetime PD model this repo does not have and does not pretend to h
 These are real and worth keeping through any recalibration:
 
 - **Nothing is applied.** The service proposes a grade; `grade_applied` is typed `False` on every
-  response. `GradeRegistryPort` declares read methods only, in all three profiles, so there is no
+  response. `GradeRegistryPort` declares read methods only, in every profile, so there is no
   write path to the grading system of record anywhere in the build.
 - **Floors move one way.** A floor rule (covenant breach, repeat breach, the arrears clocks, a
   restructuring) can only ever make a grade more adverse. `CEILING_NO_LOSS` stops the engine

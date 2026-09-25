@@ -81,7 +81,7 @@ is a known blind spot of this control and not a defect in the schema.
 
 ## How it will be written
 
-Not from this service. `GradeRegistryPort` declares read methods only in all three profiles and
+Not from this service. `GradeRegistryPort` declares read methods only in every profile and
 there is no write path to the grading system of record anywhere in this build, which is a
 control worth keeping. The log is written by whatever system records the credit decision, and
 this repository reads it. The harness therefore treats an absent file as an absent control and

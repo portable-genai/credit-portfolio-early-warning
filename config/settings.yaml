@@ -182,14 +182,17 @@ policy:
 adapters:
   audit:
     local: credit_portfolio_ews.adapters.local.audit:LocalAuditAdapter
+    live: credit_portfolio_ews.adapters.local.audit:LocalAuditAdapter
     gcp: credit_portfolio_ews.adapters.gcp.audit:CloudAuditAdapter
     onprem: credit_portfolio_ews.adapters.onprem.audit:OnPremAuditAdapter
   identity:
     local: credit_portfolio_ews.adapters.local.identity:LocalIdentityAdapter
+    live: credit_portfolio_ews.adapters.local.identity:LocalIdentityAdapter
     gcp: credit_portfolio_ews.adapters.gcp.identity:IapIdentityAdapter
     onprem: credit_portfolio_ews.adapters.onprem.identity:OnPremIdentityAdapter
   review_router:
     local: credit_portfolio_ews.adapters.local.review_router:LocalReviewRouter
+    live: credit_portfolio_ews.adapters.local.review_router:LocalReviewRouter
     gcp: credit_portfolio_ews.adapters.gcp.review_router:CloudReviewRouter
     onprem: credit_portfolio_ews.adapters.onprem.review_router:OnPremReviewRouter
 
@@ -200,6 +203,7 @@ adapters:
   # so onprem is ABSENT rather than fatal, unlike every other onprem placeholder here.
   tracer:
     local: credit_portfolio_ews.adapters.local.tracer:LocalNoopTracerAdapter
+    live: credit_portfolio_ews.adapters.local.tracer:LocalNoopTracerAdapter
     gcp: credit_portfolio_ews.adapters.gcp.tracer:CloudTracerAdapter
     onprem: credit_portfolio_ews.adapters.onprem.tracer:OnPremTracerAdapter
 
@@ -207,28 +211,36 @@ adapters:
   # a promotion certified by a laptop with no quality service is certified by nothing.
   evaluation:
     local: credit_portfolio_ews.adapters.local.evaluation:LocalOfflineEvalAdapter
+    live: credit_portfolio_ews.adapters.local.evaluation:LocalOfflineEvalAdapter
     gcp: credit_portfolio_ews.adapters.gcp.evaluation:ManagedEvalGateAdapter
     onprem: credit_portfolio_ews.adapters.onprem.evaluation:OnPremEvalAdapter
   covenant_terms:
     local: credit_portfolio_ews.adapters.local.covenant_terms:LocalCovenantTerms
+    live: credit_portfolio_ews.adapters.local.covenant_terms:LocalCovenantTerms
     gcp: credit_portfolio_ews.adapters.gcp.covenant_terms:CloudCovenantTerms
     onprem: credit_portfolio_ews.adapters.onprem.covenant_terms:OnPremCovenantTerms
   portfolio_feed:
     local: credit_portfolio_ews.adapters.local.portfolio_feed:LocalPortfolioFeed
+    live: credit_portfolio_ews.adapters.local.portfolio_feed:LocalPortfolioFeed
     gcp: credit_portfolio_ews.adapters.gcp.portfolio_feed:CloudPortfolioFeed
     onprem: credit_portfolio_ews.adapters.onprem.portfolio_feed:OnPremPortfolioFeed
   adverse_media:
     local: credit_portfolio_ews.adapters.local.adverse_media:LocalAdverseMedia
+    live: credit_portfolio_ews.adapters.local.adverse_media:LocalAdverseMedia
     gcp: credit_portfolio_ews.adapters.gcp.adverse_media:Hrz3AdverseMedia
     onprem: credit_portfolio_ews.adapters.onprem.adverse_media:OnPremAdverseMedia
   grade_registry:
     local: credit_portfolio_ews.adapters.local.grade_registry:LocalGradeRegistry
+    live: credit_portfolio_ews.adapters.local.grade_registry:LocalGradeRegistry
     gcp: credit_portfolio_ews.adapters.gcp.grade_registry:CloudGradeRegistry
     onprem: credit_portfolio_ews.adapters.onprem.grade_registry:OnPremGradeRegistry
 
   # The narration seam. It DRAFTS the review memo and CATEGORISES a media item the feed has
   # already confirmed. It never produces a grade, a movement, a floor, a score or a threshold.
+  # `live` is the laptop lane: the local open-weight model server (LOCAL_MODEL_URL, LOCAL_MODEL)
+  # through the shared hex-service-kit client. Every other port binds the same adapter as `local`.
   generation:
     local: credit_portfolio_ews.adapters.local.generation:LocalMemoNarrator
+    live: credit_portfolio_ews.adapters.live.generation:LocalModelMemoNarrator
     gcp: credit_portfolio_ews.adapters.gcp.generation:VertexMemoNarrator
     onprem: credit_portfolio_ews.adapters.onprem.generation:OnPremMemoNarrator

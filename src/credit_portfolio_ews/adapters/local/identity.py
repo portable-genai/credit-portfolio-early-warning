@@ -22,7 +22,7 @@ from hex_service_kit.identity import (
     RequestContext,
 )
 
-from ...config import LOCAL_PROFILE, Settings
+from ...config import LAPTOP_PROFILES, Settings
 from ...ports.identity import CLIENT_ASSERTED, EndUserAuthUnavailableError
 
 
@@ -51,9 +51,9 @@ class LocalIdentityAdapter:
     end_user_auth = CLIENT_ASSERTED
 
     def __init__(self, settings: Settings) -> None:
-        if settings.profile != LOCAL_PROFILE:
+        if settings.profile not in LAPTOP_PROFILES:
             raise LocalPersonaProfileError(
-                "seeded dev personas are local-profile only; "
+                "seeded dev personas are laptop-profile (local, live) only; "
                 f"refusing to serve them under profile {settings.profile!r}"
             )
         if not settings.profile_explicit:

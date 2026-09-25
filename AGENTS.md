@@ -67,7 +67,11 @@ Hexagonal, ports and adapters:
   `ports/identity.py` carries what an identity adapter declares about the end-user authentication
   it provides, and the refusal type that carries a status and a reason; `ports/tenancy.py` carries
   the one cross-tenant refusal every read port shares.
-- `adapters/{local,gcp,onprem}/` are the three families. `local` is SDK-free and actually works;
+- `adapters/{local,gcp,onprem}/` are the three families. `adapters/live/` holds the one adapter
+  the laptop `live` profile adds: the `generation` port on a local open-weight model through the
+  kit's `hex_service_kit.localmodel` client (`LOCAL_MODEL_URL`, `LOCAL_MODEL`); every other port
+  under `live` binds the `local` adapter, and `live` takes the `local` posture
+  (`config.posture_profile`). `local` is SDK-free and actually works;
   `gcp` imports its SDK LAZILY inside the method, so the other two profiles import it with no
   cloud SDK installed; `onprem` is a placeholder that RAISES rather than pretending.
 - `config.py` resolves the profile and binds every port. `config/settings.yaml` carries the
