@@ -22,6 +22,8 @@ from __future__ import annotations
 import json
 import re
 
+from hex_service_kit import provenance
+
 from ...config import Settings
 from ...domain.models import NewsCategory
 from ...domain.narration import FACTS_MARKER
@@ -35,8 +37,9 @@ _OBLIGOR = re.compile(r"- obligor: (.+)")
 _MOVEMENT = re.compile(r"- movement: (.+)")
 _SOURCE = re.compile(r"- source: (\S+)")
 
-#: What the health banner reports for this binding. Deliberately not a model name: naming one
-#: would claim a model this profile never calls.
+#: What the model pill names for this binding, before an answer (``generator_model``) and after
+#: one (the narrator notes it as it answers), so the two agree. Deliberately not a model name:
+#: naming one would claim a model this profile never calls.
 OFFLINE_NARRATOR = "deterministic-offline-stub"
 
 
@@ -51,7 +54,9 @@ class LocalMemoNarrator:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, temperature: float | None = None) -> str:
+        # Deterministic whatever the temperature: there is no sampling here to pin or free.
+        provenance.note_model(OFFLINE_NARRATOR)
         if prompt.startswith(CATEGORISE_MARKER):
             return self._categorise(prompt)
         return self._memo(prompt)
@@ -95,9 +100,9 @@ class UngroundedMemoNarrator:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, temperature: float | None = None) -> str:
         if prompt.startswith(CATEGORISE_MARKER):
-            return LocalMemoNarrator(self._settings).generate(prompt)
+            return LocalMemoNarrator(self._settings).generate(prompt, temperature=temperature)
         sources = _SOURCE.findall(prompt)
         return json.dumps(
             {
@@ -123,10 +128,14 @@ class RecordingNarrator:
     def __init__(self, inner: GenerationPort) -> None:
         self._inner = inner
         self.prompts: list[str] = []
+        #: The temperature each call asked for, in call order, beside ``prompts``: which call
+        #: sites pin their sampling is asserted against what the service sent, too.
+        self.temperatures: list[float | None] = []
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, temperature: float | None = None) -> str:
         self.prompts.append(prompt)
-        return self._inner.generate(prompt)
+        self.temperatures.append(temperature)
+        return self._inner.generate(prompt, temperature=temperature)
 
     def sent(self) -> str:
         """Every prompt this port was given, joined, for one containment assertion over all."""

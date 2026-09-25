@@ -17,7 +17,7 @@ class OnPremMemoNarrator:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, temperature: float | None = None) -> str:
         raise NotImplementedError(
             "on-prem narration model is a portability placeholder: bind the client's own model "
             "endpoint (see docs/onprem-migration.md). The assessment is complete without it; "

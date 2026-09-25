@@ -128,8 +128,8 @@ def test_healthz_reports_profile_and_region(api_client: TestClient) -> None:
     assert body["region"] == "asia-southeast1"
 
 
-def test_healthz_states_the_provenance_the_ui_banner_renders(api_client: TestClient) -> None:
-    """The service half of the banner contract (org decision, 2026-08-30).
+def test_healthz_states_the_provenance_the_model_pill_starts_from(api_client: TestClient) -> None:
+    """What the console's model pill shows before any answer (the configured half).
 
     The UI must never infer either value. A console that read its runtime from
     ``window.location`` would be right until the deployment served through a proxy and
@@ -137,7 +137,7 @@ def test_healthz_states_the_provenance_the_ui_banner_renders(api_client: TestCli
     """
     body = api_client.get("/healthz").json()
     assert body["runtime"] == "local"
-    # This repo BINDS a generative port (memo drafting and media categorisation), so the banner
+    # This repo BINDS a generative port (memo drafting and media categorisation), so the pill
     # names what is bound rather than `no-model`: offline that is a deterministic stub, and a
     # reviewer approving a proposal is entitled to know which of the two they are reading.
     assert body["generator_model"] == "deterministic-offline-stub"
@@ -158,7 +158,7 @@ def test_the_runtime_follows_the_profile_and_onprem_is_not_gcp(profile: str, exp
     assert Settings(profile=profile).runtime == expected
 
 
-def test_the_managed_banner_names_the_pinned_model_off_the_binding() -> None:
+def test_the_managed_pill_names_the_pinned_model_off_the_binding() -> None:
     """Read off the BINDING, never a second settings string that could drift from it."""
     from credit_portfolio_ews.adapters.gcp.generation import _MODEL
     from credit_portfolio_ews.config import Settings
@@ -166,7 +166,7 @@ def test_the_managed_banner_names_the_pinned_model_off_the_binding() -> None:
     assert Settings(profile="gcp").generator_model == _MODEL
 
 
-def test_the_onprem_banner_says_the_seam_is_unbound_rather_than_naming_a_model() -> None:
+def test_the_onprem_pill_says_the_seam_is_unbound_rather_than_naming_a_model() -> None:
     from credit_portfolio_ews.config import Settings
 
     assert Settings(profile="onprem").generator_model == "onprem-not-implemented"

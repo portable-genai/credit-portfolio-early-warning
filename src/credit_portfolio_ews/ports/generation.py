@@ -17,10 +17,14 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class GenerationPort(Protocol):
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, *, temperature: float | None = None) -> str:
         """Return the model's raw response to ``prompt`` (expected to be strict JSON).
 
         The caller validates it and may DISCARD it; the port makes no promise the output is
         well formed, only that it is what the model returned.
+
+        ``temperature`` is decided per call site. It is pinned (``0.0``) where the output is
+        classified and compared, and left ``None`` for drafting, where an adapter OMITS it
+        rather than sending a default: some models reject the parameter outright.
         """
         ...

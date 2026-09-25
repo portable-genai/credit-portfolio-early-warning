@@ -243,8 +243,9 @@ class HealthResponse(BaseModel):
     status: str
     profile: str
     region: str
-    #: Provenance the UI banner states on every page: where the runtime sits and which model
-    #: answers. Derived server-side so the UI never guesses (org decision, 2026-08-30).
+    #: What the UI's model pill states before any answer: where the runtime sits and which model
+    #: the bound generator calls. Derived server-side so the UI never guesses. Once a request is
+    #: answered, the pill shows that response's ``X-Answered-By`` instead.
     runtime: str = "local"  # "gcp" | "local"
     generator_model: str = "no-model"
 

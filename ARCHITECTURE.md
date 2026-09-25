@@ -140,7 +140,7 @@ redaction test is worse than none.
 | `PortfolioFeedPort` | the shipped book in DuckDB, over the warehouse's own schema and statements | BigQuery metrics and servicing views (lazy, parameterised) | placeholder | an empty window presents a stressed obligor as a clean one, and a missing snapshot presents an obligor in default as current |
 | `AdverseMediaPort` | a small fixture corpus with one UNCONFIRMED item | the `agent-registry` knowledge base (lazy) | placeholder | an unconfigured feed and an obligor with no coverage must not look the same. An EMPTY result from a configured feed is a real answer |
 | `GradeRegistryPort` | the fixture estate, read only | the managed grade store, read only, viewer role only | placeholder, and it must STAY read-only when rebound | a defaulted grade of record makes every obligor look unchanged and nothing is ever proposed |
-| `GenerationPort` | a deterministic offline narrator that drives the REAL validation | the pinned Vertex model at temperature zero (lazy) | placeholder | the memo is drafting, so this refusal costs a paragraph and never a decision |
+| `GenerationPort` | a deterministic offline narrator that drives the REAL validation | the pinned Vertex model, categorisation at temperature zero and the memo draft free (lazy) | placeholder | the memo is drafting, so this refusal costs a paragraph and never a decision |
 
 The on-prem placeholders RAISE. Two of them are load bearing for this vertical: a covenant feed
 that returned an empty list would produce a confident affirm on a borrower nobody tested, and a

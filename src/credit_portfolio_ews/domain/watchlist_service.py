@@ -69,6 +69,10 @@ CATEGORISE_MARKER = "CATEGORISE ONE CONFIRMED ADVERSE-MEDIA ITEM"
 #: a model category from a feed one at a glance.
 MODEL_CLASSIFIER = "generation-port"
 
+#: The one pinned sampling value. The categorisation is a classification the engine compares, so
+#: it is pinned; the memo draft is drafting and sends no temperature at all.
+CATEGORISE_TEMPERATURE = 0.0
+
 
 def redacted_citations(citations: Sequence[Citation]) -> tuple[Citation, ...]:
     """Mask the SNIPPET, never the locator.
@@ -345,7 +349,11 @@ class WatchlistReviewService:
             ]
         )
         try:
-            parsed = json.loads(self._generation.generate(prompt))
+            # Pinned: the answer is a CLASSIFICATION the engine compares against a closed
+            # vocabulary, so the same item must categorise the same way on a replay.
+            parsed = json.loads(
+                self._generation.generate(prompt, temperature=CATEGORISE_TEMPERATURE)
+            )
         except Exception:  # noqa: BLE001 - a model fault must never decide an outcome
             return NewsCategory.UNCLEAR
         if not isinstance(parsed, dict) or parsed.get("item_id") != item.item_id:
@@ -398,7 +406,9 @@ class WatchlistReviewService:
         if not assessment.requires_human_review:
             return ("", "", "")
         try:
-            raw = self._generation.generate(build_prompt(assessment))
+            # Free: the memo is DRAFTING, so no temperature is sent. Every figure it states is
+            # still checked against the engine's own by `validate_memo`, and discarded if not.
+            raw = self._generation.generate(build_prompt(assessment), temperature=None)
         except NotImplementedError as exc:
             # The exit profile binds no model. The memo is DRAFTING, so its absence costs a
             # paragraph and never a decision; the assessment is complete either way.
@@ -411,6 +421,7 @@ class WatchlistReviewService:
 
 __all__ = [
     "CATEGORISE_MARKER",
+    "CATEGORISE_TEMPERATURE",
     "MODEL_CLASSIFIER",
     "REVIEW_SPAN",
     "WatchlistReviewService",
