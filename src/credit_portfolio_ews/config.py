@@ -590,9 +590,8 @@ class Settings:
     #: The managed grading system of record, READ ONLY. Empty refuses: a defaulted grade of
     #: record would make every obligor look unchanged and nothing would ever be proposed.
     grade_registry_url: str = ""
-    #: GCP project the managed tracer exports spans to, and the one Cloud Logging names in a
-    #: trace resource path. Empty is valid and common: on Cloud Run the exporter resolves the
-    #: project from the metadata server, so this only has to be set where that is unavailable.
+    #: GCP project Cloud Logging names in a trace resource path. The tracer does not read it: spans
+    #: go through the agent-observability collector, which owns the destination project.
     project_id: str = ""
     #: Was :attr:`profile` chosen DELIBERATELY, or merely inherited because nobody set the
     #: variable? Only :meth:`load` can set this False; direct construction names the profile in
