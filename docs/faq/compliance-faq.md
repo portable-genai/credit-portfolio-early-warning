@@ -86,7 +86,7 @@ ladder is a starting point rather than a compliance claim.
 ### What is still open at go-live?
 
 Model risk first, in the order given in the model card. Then: this vertical's cloud resources in
-Terraform, the `agent-guardrail-gateway` binding before any widening of the adverse-media path, `agent-observability` and `agent-registry`
+Terraform, `agent-observability` and `agent-registry`
 wiring, the alert on the age of `watchlist_since` (because this repo cannot detect an upstream
 that never increments `clean_periods`), and the decision about how an approved re-grade reaches
 your rating system.

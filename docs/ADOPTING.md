@@ -188,11 +188,12 @@ the seams those integrations switch into:
 - `agent-observability` plus immutable WORM audit: audit events and trace spans go to it via
   `AuditSinkPort` and `ObservabilityTracerPort`.
 
-The guardrail gateway (`agent-guardrail-gateway`) is **not** integrated today, and that matters more here than the
-usual boilerplate: untrusted adverse-media text DOES reach the model on the narration path,
-bounded only by a closed enum, a capped family and the no-external-floor rule. `agent-guardrail-gateway` becomes
-mandatory the moment you widen any of those three. The enterprise knowledge base (`enterprise-knowledge-base`) is not
-integrated either.
+Rule R1's guardrail is bound through `GuardrailPort`: untrusted adverse-media text DOES reach the
+model on the narration path, so both model jobs are screened input-before and output-after
+(`domain/watchlist_service._screened_generate`), on a regional Model Armor template under `gcp`
+(`infra/terraform/model_armor.tf`). Behind the screen, the categorisation is still bounded by a
+closed enum, a capped family and the no-external-floor rule; keep all three. The enterprise
+knowledge base (`enterprise-knowledge-base`) is not integrated.
 
 ## 6. Adoption checklist
 

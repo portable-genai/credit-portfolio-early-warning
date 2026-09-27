@@ -385,8 +385,15 @@ _REBOUND_SETTINGS = "\n".join(
         ],
         f"    onprem: {_PKG}.adapters.onprem.review_router:OnPremReviewRouter",
         # Every port must bind every profile or `_bindings_from` refuses the whole file, so
-        # this fixture lists the observability ports too. They take no part in the identity
-        # posture under test; the offline adapters keep the rebuilt module SDK-free.
+        # this fixture lists the observability and guardrail ports too. They take no part in
+        # the identity posture under test; the offline adapters keep the rebuilt module
+        # SDK-free even under the `gcp` profile these runs bind.
+        "  guardrail:",
+        *[
+            f"    {p}: {_PKG}.adapters.local.guardrail:LocalHeuristicGuardrailAdapter"
+            for p in ("local", "live", "gcp")
+        ],
+        f"    onprem: {_PKG}.adapters.onprem.guardrail:OnPremGuardrailAdapter",
         "  tracer:",
         *[
             f"    {p}: {_PKG}.adapters.local.tracer:LocalNoopTracerAdapter"

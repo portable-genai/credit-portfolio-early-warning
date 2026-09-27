@@ -77,7 +77,7 @@ and the audit projection.
 | `agent-registry` | Discovery. The A2A card is published at `/.well-known/agent-card.json`. |
 | `model-quality-gate` eval / quality gate | Owns promotion verdicts. |
 | `agent-observability` and WORM audit | Owns the immutable audit sink and traces. |
-| `agent-guardrail-gateway` | **Not bound.** See the security FAQ; it matters here because adverse-media text reaches the model. |
+| `agent-guardrail-gateway` | Bound through `GuardrailPort` (rule R1): a regional Model Armor template under `gcp` screens every prompt and answer. See the security FAQ. |
 | `enterprise-knowledge-base` | Not integrated. |
 
 ### Can I demo it without a cloud project?
@@ -91,6 +91,6 @@ stops being true.
 
 The honest list lives in the catalog row and in [`../../COMPLIANCE.md`](../../COMPLIANCE.md). The
 headline items: the scoring engine is uncalibrated and unvalidated (see the model card); this
-vertical's own BigQuery and adverse-media resources are not in `infra/terraform/`; `agent-guardrail-gateway`, `agent-observability` and
+vertical's own BigQuery and adverse-media resources are not in `infra/terraform/`; `agent-observability` and
 the `agent-registry` registration are unwired; and the loop back from an approved re-grade to the rating
 system of record is deliberately open, because this repo will never write one.

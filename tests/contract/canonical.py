@@ -34,6 +34,8 @@ from credit_portfolio_ews.domain.kernel import (
     AuditEvent,
     Citation,
     Decision,
+    Direction,
+    GuardrailVerdict,
     Severity,
 )
 from credit_portfolio_ews.domain.models import (
@@ -202,6 +204,14 @@ def _generation_answered(_adapter: Any, result: Any) -> bool:
     return isinstance(result, str) and result.strip().startswith("{")
 
 
+def _guardrail_invoke(adapter: Any) -> Any:
+    return adapter.screen("a routine, benign case narration", Direction.INPUT)
+
+
+def _guardrail_answered(_adapter: Any, result: Any) -> bool:
+    return isinstance(result, GuardrailVerdict) and result.allowed is True
+
+
 CANONICAL_CALLS: dict[str, PortCase] = {
     "audit": PortCase(
         invoke=_audit_invoke,
@@ -209,6 +219,13 @@ CANONICAL_CALLS: dict[str, PortCase] = {
         # The lazy `google.cloud` import is the first thing the managed sink does.
         managed_refusal=(ImportError,),
         detail="write one already-redacted WORM record",
+    ),
+    "guardrail": PortCase(
+        invoke=_guardrail_invoke,
+        answered=_guardrail_answered,
+        # The lazy `google.cloud` import is the first thing the managed adapter's screen does.
+        managed_refusal=(ImportError,),
+        detail="screen a generation call's text and allow benign input through",
     ),
     "identity": PortCase(
         invoke=_identity_invoke,

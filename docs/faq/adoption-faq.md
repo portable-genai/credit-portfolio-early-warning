@@ -89,6 +89,6 @@ headless on demand.
 ### What is still open?
 
 The catalog row for `credit-portfolio-early-warning` carries the honest list. In short: the scoring engine is uncalibrated and
-unvalidated; this vertical's cloud resources are not in Terraform; `agent-guardrail-gateway`, `agent-observability` and `agent-registry` are
+unvalidated; this vertical's cloud resources are not in Terraform; `agent-observability` and `agent-registry` are
 unwired; no Docker image has been built; the demo pages have not been rehearsed; and the loop back
 to the rating system of record is open by design.

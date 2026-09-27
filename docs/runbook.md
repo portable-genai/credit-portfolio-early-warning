@@ -304,6 +304,38 @@ carries `review_routing: "failed"` and an empty reference, the failure is logged
 console says the item is not queued for review. Terraform states the switch as
 `review_routing_enabled`.
 
+## Guardrail (rule R1)
+`ports/guardrail.py` screens both model jobs this service makes, the adverse-media
+categorisation and the memo draft, through the one seam every generation call routes through
+(`domain/watchlist_service._screened_generate`): the prompt INPUT as sent, before the model is
+called, and the answer OUTPUT before anything parses, validates or returns it. Each screen's
+`sanitized_text` is the text used from then on, exactly as given. Under `gcp` it calls a regional
+Model Armor template (`config/settings.yaml` `model_armor.template_id`, on the regional host
+`model_armor.host`, never the global endpoint); `infra/terraform/model_armor.tf` creates that
+template, gated on `var.model_armor_full_capabilities` for the malicious-URI filter and
+multi-language detection, which `asia-southeast1` does not serve, so a deployment here sets
+`model_armor_full_capabilities = false` (see `terraform.tfvars.example`) and discloses the
+narrowed guardrail: prompt injection, jailbreak and the RAI filters still run.
+
+The managed guardrail fails CLOSED. It allows only on an explicit `NO_MATCH_FOUND` from a screen
+where every filter ran (`invocation_result` `SUCCESS`); a match, an absent or undecided result, a
+`PARTIAL` or `FAILURE` screen (a filter skipped for size or language, or erroring, reports no
+match), and any API error all refuse, and every call carries a deadline
+(`model_armor.timeout_seconds`, 10 s by default) so a stalled backend refuses rather than hangs.
+A refusal is audited `Decision.BLOCKED` (action `adverse_media_categorisation` with no severity,
+or `watchlist_review_memo_draft` with the scored band), never carrying the refused text; a
+guardrail that raised instead of deciding is audited the same way with
+`guardrail unavailable (<error>)`. Narration is optional by design, so the review still
+completes on FIXED text: a refused item stays `UNCLEAR` and fires nothing, and a refused memo is
+discarded with `memo_discarded_reason` saying why. If the audit sink refuses the BLOCKED record
+too, the guardrail's own error fails the request instead.
+
+`CREDITEWS_GUARDRAIL` switches the guardrail, read in the same three states as review routing:
+unset is on, `true`/`false` (or `on`/`off`) wins, and an emptied or unrecognised value refuses at
+boot. Off binds `DisabledGuardrail`, which allows everything unchanged, and logs one warning at
+startup. With the guardrail on and no Model Armor template configured, the managed profile
+REFUSES TO BOOT. Terraform states the switch as `guardrail_enabled`.
+
 ## Supply chain
 Installs come from the committed lockfiles. After changing a dependency run `make lock` and commit
 both files, then `make audit` (`pip-audit` over both locks). CI runs the same audit as a hard
@@ -351,11 +383,9 @@ rather than a false pass. It writes an obviously fictional audit record to the c
 and, when `HUMAN_REVIEW_URL` is set, submits one fictional review to the live console.
 
 ## Alerts
-`infra/terraform/monitoring.tf` creates five log-based metrics and an alert policy for each:
-critical escalations in the app audit log, service-account key creation, VPC-SC denials, CMEK
-destroy or update operations, and Cloud Armor denials at the edge. Set
-`alert_notification_channels` or they fire into nowhere; the serving edge REFUSES to plan without
-at least one, because an alert nobody receives is not an alert. There is deliberately no
-guardrail-block metric until a guardrail port is bound (rule R1): a filter that can never match
-is a green light nobody earned. Add it, and this vertical's own signals, in the same commit that
-binds the guardrail.
+`infra/terraform/monitoring.tf` creates six log-based metrics and an alert policy for each:
+critical escalations in the app audit log, guardrail refusals (rule R1, any audit record with
+decision `blocked`), service-account key creation, VPC-SC denials, CMEK destroy or update
+operations, and Cloud Armor denials at the edge. Set `alert_notification_channels` or they fire
+into nowhere; the serving edge REFUSES to plan without at least one, because an alert nobody
+receives is not an alert.

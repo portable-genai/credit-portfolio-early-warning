@@ -13,9 +13,12 @@ hallucinates a figure therefore changes nothing consequential.
 ``_MODEL`` is a module constant so ``config.generator_model`` can name it on the model pill by
 reading the BINDING rather than a second settings string that could drift from it, and the same
 constant is what the adapter notes (``hex_service_kit.provenance.note_model``) once it has
-answered, so the pill names the model that answered. No online search tool is attached. The
-agent-guardrail-gateway sits in front of this in the managed deployment; this adapter does not
-re-implement guardrails.
+answered, so the pill names the model that answered. No online search tool is attached. This
+adapter does not re-implement guardrails: rule R1's screen wraps every call to
+:meth:`generate`, in both directions, from ``domain/watchlist_service._screened_generate``, one
+level up. That is deliberate, not an omission -- the guardrail has to see the same prompt and
+answer every generation port binding produces, so it wraps the PORT rather than living inside
+one adapter's method.
 """
 
 from __future__ import annotations

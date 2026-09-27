@@ -27,6 +27,7 @@ from .audit import AuditSinkPort
 from .covenant_terms import CovenantTermsPort
 from .generation import GenerationPort
 from .grade_registry import WRITE_VERBS, GradeRegistryPort
+from .guardrail import GuardrailPort
 from .identity import (
     CLIENT_ASSERTED,
     END_USER_AUTH_ATTR,
@@ -48,6 +49,7 @@ from .tenancy import CrossTenantError
 #: port name (the key in the settings ``adapters:`` block) -> the Protocol it must satisfy.
 PORT_PROTOCOLS: dict[str, type] = {
     "audit": AuditSinkPort,
+    "guardrail": GuardrailPort,
     "identity": IdentityPort,
     "review_router": ReviewRouterPort,
     "tracer": ObservabilityTracerPort,
@@ -77,6 +79,7 @@ __all__ = [
     "EndUserAuthUnavailableError",
     "GenerationPort",
     "GradeRegistryPort",
+    "GuardrailPort",
     "IdentityPort",
     "PortfolioFeedPort",
     "ReviewRouterPort",

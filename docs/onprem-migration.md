@@ -26,6 +26,11 @@ deployment accordingly: see the exposure section of [runbook.md](runbook.md).
      a consequential result must still reach a human, so this placeholder RAISES rather than
      returning quietly. An adapter that dropped the escalation would leave the service
      auto-executing with the appearance of review.
+   - `GuardrailPort` -> the client's own prompt/response screening backend. Rule R1 does not
+     relax on exit either: every generation call is screened in both directions before this
+     placeholder may be replaced, so it RAISES rather than allowing everything through (the
+     domain audits that as a refusal and discards the narration). An adapter that fail-opened
+     here would be worse than the placeholder it replaced.
    - `CovenantTermsPort` -> the client's own covenant store, or their own credit-memo-drafting
      deployment. **This is the load-bearing refusal.** An adapter that returned an empty tuple
      instead of raising would be indistinguishable from an obligor with no covenants, and an

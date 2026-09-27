@@ -112,12 +112,6 @@ precedes the model, and the audit stores the redacted text.
 
 ### Remaining controls on the narration path (TODO, repo owner)
 
-- **Prompt-injection screening** (rule R1). The `agent-guardrail-gateway` is **not** bound today, and
-  untrusted third-party text DOES reach the model: an adverse-media headline and snippet are
-  written by someone outside the bank about the obligor. The three things standing in the way of
-  that mattering are the closed output enum, the `EXTERNAL` family cap and the rule that an
-  external signal can never floor a grade. Bind `agent-guardrail-gateway` before widening any of those three, and fail
-  closed to deterministic-only when the screen is unavailable.
 - **Per-tenant token budget and rate limit** (P-10). `max_output_tokens` bounds one reply; nothing
   bounds a caller's aggregate spend.
 - **A documented kill switch** (P-11). Rebinding the profile to `local` is deterministic-only

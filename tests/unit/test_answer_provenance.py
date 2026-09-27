@@ -115,6 +115,7 @@ def _spied_review(obligor_id: str) -> RecordingNarrator:
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=spy,
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=container.tracer,
     ).review(
