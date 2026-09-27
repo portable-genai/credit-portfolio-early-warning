@@ -17,9 +17,8 @@ region: ${GCP_REGION:-asia-southeast1}
 # ambiguous to render, so the whole reference is produced by the expression instead.)
 tenant: ${CREDITEWS_TENANT:-}
 
-# GCP project for the managed tracer's Cloud Trace export and for the trace resource name
-# Cloud Logging links each log line on. Empty is fine on Cloud Run, where the exporter reads
-# the project from the metadata server.
+# GCP project for the trace resource name Cloud Logging links each log line on. The tracer does not
+# read it: spans go through the agent-observability collector, which owns the destination project.
 project_id: ${GOOGLE_CLOUD_PROJECT:-}
 
 # Local profile stores. ":memory:" is the ephemeral, deterministic default the gate uses; a
@@ -216,10 +215,11 @@ adapters:
     onprem: credit_portfolio_ews.adapters.onprem.review_router:OnPremReviewRouter
 
 
-  # Tracing. Which BACKEND a deployed profile exports to is not a binding: the gcp
-  # adapter reads OTEL_EXPORTER_OTLP_ENDPOINT and sends OTLP to the agent-observability collector when it
-  # is set, straight to Cloud Trace when it is not. Tracing is not essential to correctness,
-  # so onprem is ABSENT rather than fatal, unlike every other onprem placeholder here.
+  # Tracing. Which BACKEND a deployed profile exports to is not a binding: the gcp adapter sends
+  # OTLP to the agent-observability collector named by OTEL_EXPORTER_OTLP_ENDPOINT, and the commons
+  # refuses to build a tracer when that is unset or empty: exporting straight to Cloud Trace would
+  # skip the collector's GenAI-content redaction. Tracing is not essential to correctness, so onprem
+  # is ABSENT rather than fatal, unlike every other onprem placeholder here.
   tracer:
     local: credit_portfolio_ews.adapters.local.tracer:LocalNoopTracerAdapter
     live: credit_portfolio_ews.adapters.local.tracer:LocalNoopTracerAdapter

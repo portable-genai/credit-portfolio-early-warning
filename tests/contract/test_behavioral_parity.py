@@ -65,9 +65,9 @@ def test_the_offline_family_actually_answers(port: str) -> None:
 @pytest.mark.parametrize("port", sorted(CANONICAL_CALLS))
 def test_the_onprem_family_raises_rather_than_pretending(port: str) -> None:
     case = CANONICAL_CALLS[port]
-    if not case.managed_refusal:
-        # A port whose managed adapter is documented not to refuse is not expected to refuse
-        # on-prem either: see the tracer's PortCase for why tracing degrades instead of failing.
+    if not case.onprem_refuses:
+        # On-prem binds a tracer that records nothing and never refuses: tracing carries no
+        # compliance claim, so an on-prem deployment with no trace backend still serves.
         # It still must not pretend, so it is exercised rather than skipped.
         case.invoke(_adapter(port, "onprem"))
         return
@@ -81,16 +81,10 @@ def test_the_managed_family_refuses_rather_than_succeeding_offline(
 ) -> None:
     """With no SDK and no console, every managed adapter must fail in its documented way.
 
-    An EMPTY ``managed_refusal`` is a documented way too, and the strongest claim on this table:
-    that adapter must complete offline rather than raise. Only the tracer declares it, because
-    tracing is not essential to correctness and an exporter fault must never become a request
-    fault. Asserting it here rather than skipping is what stops a future tracer that raises from
-    passing this suite unnoticed.
+    Every managed adapter declares a refusal. The tracer's is configuration (decision D1):
+    with no collector endpoint it refuses rather than export around the redaction.
     """
     case = CANONICAL_CALLS[port]
-    if not case.managed_refusal:
-        case.invoke(_adapter(port, "gcp", review_url=""))
-        return
     with pytest.raises(case.managed_refusal):
         case.invoke(_adapter(port, "gcp", review_url=""))
 
@@ -167,3 +161,24 @@ def test_the_whole_pipeline_answers_on_local_and_fails_fast_on_onprem() -> None:
             actor=sample_cases.ACTOR,
             as_of=sample_cases.AS_OF,
         )
+
+
+@pytest.fixture(autouse=True)
+def _no_collector_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The parity table's managed tracer runs with no collector, whatever the host has set."""
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+
+
+def test_a_managed_tracer_with_a_collector_degrades_offline_rather_than_failing(
+    no_cloud_sdk: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Decision D1 put the tracer's refusal in CONFIGURATION, never in the exporter.
+
+    Without a collector endpoint the managed tracer refuses (the parity table above). With one,
+    and no SDK or network, an exporter fault must still never become a request fault: the span
+    degrades to a no-op and the traced body runs.
+    """
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:4318")
+    case = CANONICAL_CALLS["tracer"]
+    adapter = _adapter("tracer", "gcp", review_url="")
+    assert case.answered(adapter, case.invoke(adapter))
