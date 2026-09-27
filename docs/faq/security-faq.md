@@ -55,7 +55,9 @@ The model sees only the redacted projection, and its output is validated before 
 So a hallucinated figure changes nothing consequential. The remaining exposure is the input side:
 adverse-media headlines and snippets are written by third parties about the obligor and DO reach
 the model. Three things bound that today, and all three are load-bearing: the closed output enum,
-the `EXTERNAL` family cap, and the rule that an external signal can never floor a grade. The `agent-guardrail-gateway` is **not** bound, so do not widen any of the three before it is.
+the `EXTERNAL` family cap, and the rule that an external signal can never floor a grade. In front
+of all three, the guardrail (rule R1) screens every prompt as sent and every answer, and a refusal
+leaves the item `UNCLEAR`: Model Armor under `gcp`, failing closed on any undecided screen.
 
 ### How is the audit trail protected?
 
@@ -76,7 +78,6 @@ check.
 ### What is deliberately out of scope?
 
 - **Login.** This repo owns no authentication flow; auth is configured ON the deployed service.
-- **Guardrail screening.** Owned by `agent-guardrail-gateway`, not bound today.
 - **The grading system of record.** No write path exists here by design.
 - **Network egress for research.** The adverse-media feed is a port; egress isolation belongs to
   the adapter and the perimeter, not to this domain.

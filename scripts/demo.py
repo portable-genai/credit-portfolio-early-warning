@@ -428,6 +428,7 @@ class DemoRun:
             adverse_media=self.container.adverse_media,
             grade_registry=self.container.grade_registry,
             generation=self.narrator,
+            guardrail=self.container.guardrail,
             review_router=self.container.review_router,
             tracer=self.tracer,
             policy=self.policy,
@@ -1339,6 +1340,13 @@ def _exit_generation(container: Any) -> Any:
     return container.generation.generate("FACTS (do not add to these):\n- obligor: exit tour")
 
 
+def _exit_guardrail(container: Any) -> Any:
+    # Benign on purpose: the exit placeholder must refuse the SCREEN itself, never allow it.
+    return container.guardrail.screen(
+        "please summarise the obligor's status", kernel.Direction.INPUT
+    )
+
+
 #: The calls the exit profile must REFUSE, one per port with an exit placeholder. Add a port,
 #: add a row: a seam nobody calls is a seam nobody knows is unimplemented.
 #:
@@ -1358,6 +1366,7 @@ EXIT_CALLS: dict[str, Callable[[Any], Any]] = {
     "adverse_media": _exit_adverse_media,
     "grade_registry": _exit_grade_registry,
     "generation": _exit_generation,
+    "guardrail": _exit_guardrail,
 }
 
 #: Ports whose exit placeholder is deliberately ABSENT rather than refusing.

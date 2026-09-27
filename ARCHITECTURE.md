@@ -81,7 +81,8 @@ behavioural suites cannot quietly assert different things.
 read the obligor and its grade of record from the registry (which has no write method) -> read
 the covenant terms `credit-memo-drafting` extracted at origination and their observations for the resolved period
 -> read the arrears snapshot and the metric window -> retrieve adverse media and let the model
-CATEGORISE only the items the feed already confirmed -> **evaluate with the pure engine** ->
+CATEGORISE only the items the feed already confirmed (every model call **screened INPUT and
+OUTPUT by the guardrail, R1**) -> **evaluate with the pure engine** ->
 build the redacted projection ONCE at the service edge -> write the already-redacted WORM audit
 record -> draft and validate the memo from that same masked object, discarding it on any failure
 -> compute `required_approvals` (the only place exposure is read) -> **route every consequential
@@ -140,6 +141,7 @@ redaction test is worse than none.
 | `PortfolioFeedPort` | the shipped book in DuckDB, over the warehouse's own schema and statements | BigQuery metrics and servicing views (lazy, parameterised) | placeholder | an empty window presents a stressed obligor as a clean one, and a missing snapshot presents an obligor in default as current |
 | `AdverseMediaPort` | a small fixture corpus with one UNCONFIRMED item | the `agent-registry` knowledge base (lazy) | placeholder | an unconfigured feed and an obligor with no coverage must not look the same. An EMPTY result from a configured feed is a real answer |
 | `GradeRegistryPort` | the fixture estate, read only | the managed grade store, read only, viewer role only | placeholder, and it must STAY read-only when rebound | a defaulted grade of record makes every obligor look unchanged and nothing is ever proposed |
+| `GuardrailPort` | deterministic heuristic prompt-injection screen | regional Model Armor template, fail closed (lazy) | placeholder | an unscreened prompt or answer is exactly what rule R1 forbids, so it refuses and the domain discards the narration |
 | `GenerationPort` | a deterministic offline narrator that drives the REAL validation | the pinned Vertex model, categorisation at temperature zero and the memo draft free (lazy) | placeholder | the memo is drafting, so this refusal costs a paragraph and never a decision |
 
 The on-prem placeholders RAISE. Two of them are load bearing for this vertical: a covenant feed

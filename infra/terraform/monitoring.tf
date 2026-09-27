@@ -17,10 +17,11 @@
 #     to decide whether enforcing would break a legitimate path.
 #   - cmek_changes : a CMEK key destroy or update. Key material changing is a P-09 event.
 #   - edge_denials : Cloud Armor denied or throttled a request at the edge.
-#
-# There is deliberately no guardrail-block metric. A rendered repo binds no guardrail port yet
-# (COMPLIANCE rule R1 records that as owed), and a metric whose filter can never match is a
-# green light nobody earned. Add it in the same commit that binds the guardrail.
+#   - guardrail_blocks : the guardrail (rule R1) refused a narration input or output.
+#     `domain/watchlist_service._audit_guardrail_block` writes AuditEvent with
+#     jsonPayload.decision "blocked" (domain/kernel.py Decision.BLOCKED) whichever of the two
+#     model jobs (adverse-media categorisation, memo drafting) tripped it, so the filter matches
+#     on the decision alone rather than naming either job's own audit action.
 #
 # Alert policies are always created; var.alert_notification_channels attaches the channels.
 #
@@ -47,6 +48,10 @@ locals {
     edge_denials = {
       description = "Cloud Armor denied or throttled a request at the serving edge"
       filter      = "resource.type=\"http_load_balancer\" AND jsonPayload.enforcedSecurityPolicy.outcome=\"DENY\""
+    }
+    guardrail_blocks = {
+      description = "Guardrail (Model Armor) blocked a narration input or output (rule R1)"
+      filter      = "logName=\"projects/${var.project_id}/logs/${local.audit_log_name}\" AND jsonPayload.decision=\"blocked\""
     }
   }
 }

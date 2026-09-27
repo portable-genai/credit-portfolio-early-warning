@@ -75,6 +75,7 @@ def _spied_service(container: Container) -> tuple[WatchlistReviewService, Record
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=spy,
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=container.tracer,
     )
@@ -309,6 +310,7 @@ def test_an_ungrounded_draft_is_discarded_and_the_reason_is_reported() -> None:
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=UngroundedMemoNarrator(container.settings),
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=container.tracer,
     )
@@ -329,6 +331,7 @@ def test_an_unbound_narration_seam_costs_a_paragraph_and_never_a_decision() -> N
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=onprem.generation,
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=container.tracer,
     )

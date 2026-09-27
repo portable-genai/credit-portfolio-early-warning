@@ -163,6 +163,7 @@ def test_a_live_review_drafts_a_validated_memo_through_the_kit_client() -> None:
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=LocalModelMemoNarrator(container.settings, transport=server),
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=container.tracer,
     )

@@ -58,6 +58,7 @@ def _review(obligor_id: str = sample_cases.PII_OBLIGOR) -> _RecordingTracer:
         adverse_media=container.adverse_media,
         grade_registry=container.grade_registry,
         generation=container.generation,
+        guardrail=container.guardrail,
         review_router=container.review_router,
         tracer=tracer,  # type: ignore[arg-type]
     )
